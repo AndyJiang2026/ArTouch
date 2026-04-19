@@ -18,8 +18,13 @@ class Settings(BaseSettings):
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
 
-    # Security
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "artouch-secret-key-change-in-production-2026")
+    # Security - SECRET_KEY must be set via environment variable in production
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "")
+    if not SECRET_KEY:
+        raise ValueError(
+            "SECRET_KEY environment variable is required. "
+            "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+        )
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_HOURS: int = 24
 

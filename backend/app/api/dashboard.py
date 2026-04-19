@@ -62,23 +62,21 @@ def get_stats(
     total_videos = db.query(func.count(Video.id)).scalar() or 0
     total_skus = db.query(func.count(SKU.id)).scalar() or 0
 
-    # Top 10 tags by clicks
+    # Top 10 tags by clicks (fixed: use JOIN to avoid N+1 query)
     top_tags_query = db.query(
         TagClick.tag_id,
+        NFCTag.url_code,
         func.count(TagClick.id).label("click_count"),
-    ).group_by(TagClick.tag_id).order_by(
+    ).join(NFCTag, TagClick.tag_id == NFCTag.id).group_by(
+        TagClick.tag_id, NFCTag.url_code
+    ).order_by(
         func.count(TagClick.id).desc()
     ).limit(10).all()
 
-    top_tags = []
-    for tag_id, click_count in top_tags_query:
-        tag = db.query(NFCTag).filter(NFCTag.id == tag_id).first()
-        if tag:
-            top_tags.append(TopTag(
-                tag_id=tag_id,
-                url_code=tag.url_code,
-                click_count=click_count,
-            ))
+    top_tags = [
+        TopTag(tag_id=tag_id, url_code=url_code, click_count=click_count)
+        for tag_id, url_code, click_count in top_tags_query
+    ]
 
     return DashboardStats(
         total_clicks=total_clicks,
