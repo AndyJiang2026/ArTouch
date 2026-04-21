@@ -1,0 +1,57 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ai-assistant-marker
+        name: Check AI-ASSISTED marker
+        description: Verify AI-generated code has proper markers
+        entry: python -c "
+import sys
+import re
+import os
+
+# Check staged .py files for AI markers
+result = []
+for root, dirs, files in os.walk('.'):
+    # Skip ignored dirs
+    dirs[:] = [d for d in dirs if d not in ['.git', 'node_modules', '__pycache__', '.venv', 'venv']]
+    for f in files:
+        if f.endswith('.py'):
+            path = os.path.join(root, f)
+            try:
+                with open(path, 'r') as fp:
+                    content = fp.read()
+                    if 'AI-ASSISTED: Yes' in content or 'AI-TOOL:' in content:
+                        # Found AI marker, verify all required fields
+                        has_tool = 'AI-TOOL:' in content
+                        has_date = 'DATE:' in content
+                        has_engineer = 'ENGINEER:' in content
+                        has_risk = 'RISK-LEVEL:' in content
+                        if not (has_tool and has_date and has_engineer and has_risk):
+                            result.append(f'{path}: AI marker incomplete (need AI-TOOL, DATE, ENGINEER, RISK-LEVEL)')
+            except:
+                pass
+if result:
+    print('❌ AI marker validation failed:')
+    for r in result:
+        print(f'  {r}')
+    sys.exit(1)
+print('✅ AI markers validation passed')
+"
+        language: system
+        files: \.(py|vue|js|ts)$
+        pass_filenames: false
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.8
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format

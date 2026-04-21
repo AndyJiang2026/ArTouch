@@ -1,0 +1,40 @@
+<!--
+AI-ASSISTED: Yes
+AI-TOOL: Claude Code
+PROMPT: 为 ArtTouch NFC 项目生成 CODEOWNERS 文件，定义后端、前端、测试、GitHub 配置的默认审查者
+DATE: 2026-04-19
+ENGINEER: System
+RISK-LEVEL: P3
+-->
+
+# CODEOWNERS - ArtTouch 项目代码所有权规则
+#
+# 此文件定义了不同路径代码的默认审查者
+# 规则从上到下匹配，最后一项 * 为默认 owner
+#
+# GitHub 会自动请求对应路径代码的 owner 审查
+
+# ========== 路径规则 ==========
+
+# 后端代码 - @AndersC Buz
+/backend/*    @AndersC Buz
+
+# 前端代码 - @AndersC Buz
+/frontend/*    @AndersC Buz
+
+# 测试代码 - @AndersC Buz
+/tests/*    @AndersC Buz
+
+# GitHub 配置文件 - @AndersC Buz
+/.github/*    @AndersC Buz
+
+# 默认 owner（适用于所有未匹配上述规则的代码）
+*    @AndersC Buz
+
+# ========== 说明 ==========
+#
+# P0/P1 级别的变更（如安全、认证、金融相关）
+# 必须由 @AndersC Buz 亲自审查
+#
+# AI 生成的代码将自动标记并通知代码所有者
+#

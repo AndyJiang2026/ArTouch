@@ -1,0 +1,17 @@
+[Unit]
+Description=ArtTouch NFC Service
+After=network.target
+
+[Service]
+Type=simple
+User=admin
+WorkingDirectory=/home/admin/artouch/backend
+Environment="PATH=/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/admin/hermes-clean/hermes-agent/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

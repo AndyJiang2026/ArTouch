@@ -1,0 +1,52 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*.so
+.Python
+venv/
+.venv/
+.env
+.venv
+
+# Testing
+.pytest_cache
+.coverage
+htmlcov/
+tests/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docs
+docs/
+*.md
+!README.md
+
+# Data (bind mounts)
+videos/
+data/
+logs/
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# SSL Certificates
+certs/
+
+# Frontend build artifacts
+frontend/dist/
+frontend/node_modules/
+
+# Misc
+*.log
+test.db
+.ruff_cache/

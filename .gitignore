@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env
+
+# Node.js
+node_modules/
+
+# Frontend build
+frontend/dist/
+frontend/.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Database
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Logs
+logs/
+*.log
+
+# Media
+videos/*
+!videos/.gitkeep
+
+# Config (secrets)
+*.env.local
+*.env.production
+
+# Checkpoints (auto-generated)
+.checkpoint/
+
+# Misc
+*.bak
+*.tmp
+.DS_Store
+Thumbs.db
+
+# systemd service - track the template, ignore compiled copies
+!artouch.service

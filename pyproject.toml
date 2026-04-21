@@ -1,0 +1,45 @@
+# AI-ASSISTED: Yes
+# AI-TOOL: Claude Code
+# PROMPT: 为 ArtTouch NFC 项目生成 Python 项目配置文件，包含 ruff、black、mypy、pytest 等工具配置
+# DATE: 2026-04-19
+# ENGINEER: System
+# RISK-LEVEL: P3
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "DTZ", "T10", "ISC", "PIE", "PT", "RET", "SIM", "ARG", "PL", "TRY", "RUF"]
+ignore = [
+    "TRY003",     # 异常处理长描述（已手动处理）
+    "PLR0913",    # 超过5个参数的函数（已手动处理）
+    "B008",       # FastAPI Depends() 作为默认参数是标准用法，非缺陷
+    "PT019",      # pytest fixture _前缀参数（已正确处理）
+    "UP017",      # datetime.UTC 别名（需要 tzdata 或 Python 3.11+）
+    "DTZ001",     # datetime() 不带时区（数据库存 naive，统一用 utcnow）
+    "DTZ003",     # datetime.utcnow()（同上，Python 3.12+ 废弃但仍安全）
+    "DTZ007",     # strptime 不带 %z（同上）
+    "TRY301",     # 内部函数中raise是正确模式，无需强制重构
+    "RUF001",     # 全角标点（，．)是中文标准用法，非错误
+    "RUF002",     # 全角标点在docstring中是标准中文，非错误
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["PLR2004", "ARG001", "ARG002"]  # 测试中断言魔法数字+fixture未使用参数
+
+[tool.black]
+line-length = 120
+target-version = ["py311"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"

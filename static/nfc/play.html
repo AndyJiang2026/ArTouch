@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ArtTouch NFC 互动视频</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    html, body {
+      width: 100%;
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+      background: #000;
+      overflow: hidden;
+    }
+    
+    .container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    }
+    
+    .logo-area {
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .logo {
+      font-size: 32px;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 0 2px 10px rgba(64, 158, 255, 0.5);
+    }
+    
+    .logo span {
+      color: #409eff;
+    }
+    
+    .video-wrapper {
+      flex: 1;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      max-width: 1200px;
+    }
+    
+    .video-container {
+      width: 100%;
+      max-height: 100%;
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+    
+    video {
+      width: 100%;
+      height: auto;
+      max-height: 70vh;
+      object-fit: contain;
+      background: #000;
+      display: block;
+    }
+    
+    .title-area {
+      padding: 15px 20px;
+      text-align: center;
+    }
+    
+    .video-title {
+      font-size: 18px;
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 8px;
+    }
+    
+    .product-name {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+    
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+    
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-top-color: #409eff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .error {
+      color: #f56c6c;
+      text-align: center;
+      padding: 40px;
+    }
+    
+    .error-icon {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+    
+    .error-message {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    
+    .error-tip {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* 响应式适配 */
+    @media (max-width: 768px) {
+      .logo {
+        font-size: 24px;
+      }
+      
+      .video-title {
+        font-size: 16px;
+      }
+      
+      .product-name {
+        font-size: 12px;
+      }
+      
+      .video-wrapper {
+        padding: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo-area">
+      <div class="logo">Art<span>Touch</span></div>
+    </div>
+    
+    <div class="video-wrapper">
+      <div class="video-container">
+        <div id="loading-area" class="loading">
+          <div class="loading-spinner"></div>
+          <div>加载中...</div>
+        </div>
+        
+        <div id="error-area" class="error" style="display: none;">
+          <div class="error-icon">⚠️</div>
+          <div id="error-message" class="error-message"></div>
+          <div class="error-tip">请检查网络连接或联系管理员</div>
+        </div>
+        
+        <video 
+          id="video-player" 
+          style="display: none;" 
+          controls 
+          playsinline
+          webkit-playsinline
+          x5-video-player-type="h5"
+          x5-video-player-fullscreen="true"
+        ></video>
+      </div>
+    </div>
+    
+    <div class="title-area">
+      <div id="video-title" class="video-title"></div>
+      <div id="product-name" class="product-name">ArtTouch NFC 互动视频系统</div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const videoPlayer = document.getElementById('video-player');
+      const loadingArea = document.getElementById('loading-area');
+      const errorArea = document.getElementById('error-area');
+      const errorMessage = document.getElementById('error-message');
+      const videoTitle = document.getElementById('video-title');
+      const productName = document.getElementById('product-name');
+
+      // 从URL路径获取code参数 (格式: /n/{code})
+      function getCodeFromPath() {
+        // 匹配 /n/{code} 格式
+        const pathMatch = window.location.pathname.match(/^\/n\/(.+)$/);
+        if (pathMatch && pathMatch[1]) {
+          return pathMatch[1];
+        }
+        return null;
+      }
+
+      // 从URL查询参数获取code参数 (格式: /nfc/play.html?code=xxx)
+      function getCodeFromQuery() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('code');
+      }
+
+      function getQueryParam(name) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(name);
+      }
+
+      // 显示错误
+      function showError(message) {
+        loadingArea.style.display = 'none';
+        videoPlayer.style.display = 'none';
+        errorArea.style.display = 'block';
+        errorMessage.textContent = message;
+      }
+
+      // 隐藏加载
+      function hideLoading() {
+        loadingArea.style.display = 'none';
+      }
+
+      // 获取视频信息并播放
+      async function loadVideo() {
+        const code = getCodeFromPath() || getCodeFromQuery();
+        
+        if (!code) {
+          showError('缺少code参数');
+          return;
+        }
+
+        try {
+          console.log('正在获取视频信息, code:', code);
+          
+          const response = await fetch('/api/nfc/' + encodeURIComponent(code) + '/play');
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || '视频不存在或无法播放');
+          }
+          
+          const data = await response.json();
+          console.log('获取视频信息成功:', data);
+          
+          // 更新标题
+          if (data.title) {
+            videoTitle.textContent = data.title;
+          }
+          if (data.cultural_product_name) {
+            productName.textContent = data.cultural_product_name;
+          }
+          
+          // 设置视频源
+          videoPlayer.src = data.video_url;
+          videoPlayer.style.display = 'block';
+          
+          // 等待元数据加载后播放
+          videoPlayer.onloadedmetadata = function() {
+            hideLoading();
+            videoPlayer.play().catch(function(e) {
+              console.log('自动播放失败，需要用户交互:', e);
+              // 自动播放失败时显示播放按钮
+            });
+          };
+          
+          videoPlayer.onerror = function() {
+            showError('视频加载失败');
+          };
+        } catch (error) {
+          console.error('加载视频失败:', error);
+          showError(error.message || '加载视频失败');
+        }
+      }
+
+      // 页面加载完成后获取视频
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadVideo);
+      } else {
+        loadVideo();
+      }
+    })();
+  </script>
+</body>
+</html>

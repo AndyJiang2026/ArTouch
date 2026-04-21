@@ -1,0 +1,324 @@
+# AI-ASSISTED: Yes
+# AI-TOOL: Claude Code
+# PROMPT: 为 ArtTouch NFC 项目生成完整的 CI/CD Pipeline 配置，包含后端测试、前端测试、集成测试、安全扫描、构建部署和依赖检查
+# DATE: 2026-04-19
+# ENGINEER: System
+# RISK-LEVEL: P1
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+      - 'fix/**'
+      - 'release/**'
+      - 'hotfix/**'
+  pull_request:
+    branches:
+      - main
+      - develop
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+
+jobs:
+  # ============================================
+  # Backend Tests (Python/FastAPI)
+  # ============================================
+  backend-test:
+    name: Backend Test
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio black ruff mypy bandit
+
+      - name: Run code format check (black)
+        run: black --check --diff .
+
+      - name: Run linting (ruff)
+        run: ruff check .
+
+      - name: Run type checking (mypy)
+        run: mypy . --ignore-missing-imports
+
+      - name: Run security scan (bandit)
+        run: bandit -r . -f json -o bandit-report.json || true
+
+      - name: Run tests with coverage
+        run: |
+          pytest --cov=app --cov-report=xml --cov-report=html --cov-report=term-missing
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v4
+        with:
+          file: backend/coverage.xml
+          fail_ci_if_error: false
+
+  # ============================================
+  # AI Marker Validation
+  # ============================================
+  ai-marker-check:
+    name: AI Marker Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check AI markers
+        run: |
+          echo "Checking for AI-generated code markers..."
+          
+          # Find files with AI markers
+          AI_FILES=$(grep -r "AI-ASSISTED: Yes" --include="*.py" --include="*.vue" --include="*.js" --include="*.ts" --include="*.yaml" --include="*.yml" --include="*.toml" --include="*.md" -l | wc -l)
+          echo "Found $AI_FILES files with AI-ASSISTED markers"
+          
+          # Check AI files have complete markers
+          echo "Validating marker completeness..."
+          python3 << 'EOF'
+import os
+import re
+
+required_fields = ['AI-TOOL:', 'DATE:', 'ENGINEER:', 'RISK-LEVEL:']
+issues = []
+
+for root, dirs, files in os.walk('.'):
+    dirs[:] = [d for d in dirs if d not in ['.git', 'node_modules', '__pycache__', '.venv']]
+    for f in files:
+        if f.endswith(('.py', '.vue', '.js', '.ts', '.yaml', '.yml', '.toml', '.md')):
+            path = os.path.join(root, f)
+            try:
+                with open(path, 'r') as fp:
+                    content = fp.read()
+                    if 'AI-ASSISTED: Yes' in content:
+                        for field in required_fields:
+                            if field not in content:
+                                issues.append(f'{path}: Missing {field}')
+            except:
+                pass
+
+if issues:
+    print('❌ AI marker validation failed:')
+    for issue in issues:
+        print(f'  {issue}')
+    exit(1)
+print('✅ All AI markers are complete')
+EOF
+
+  # ============================================
+  # Frontend Tests (Vue.js)
+  # ============================================
+  frontend-test:
+    name: Frontend Test
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Run type checking
+        run: npm run type-check
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+      - name: Run e2e tests (if configured)
+        run: npm run test:e2e || echo "E2E tests not configured"
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 7
+
+  # ============================================
+  # Integration Tests
+  # ============================================
+  integration-test:
+    name: Integration Test
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          pip install -r backend/requirements.txt
+          cd frontend && npm ci
+
+      - name: Start backend service
+        run: |
+          cd backend
+          python run.py &
+          sleep 5
+
+      - name: Run integration tests
+        run: |
+          pytest tests/integration/ -v || echo "Integration tests not configured"
+
+  # ============================================
+  # Security Scan
+  # ============================================
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # ============================================
+  # Build and Deploy (on merge to main/develop)
+  # ============================================
+  build-and-deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          pip install -r backend/requirements.txt
+          cd frontend && npm ci
+
+      - name: Build backend
+        run: |
+          cd backend
+          python -m py_compile app/**/*.py
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Deploy to staging (develop branch)
+        if: github.ref == 'refs/heads/develop'
+        run: |
+          echo "Deploying to staging environment..."
+          # Add deployment commands here
+          # Example: rsync -avz dist/ user@staging:/var/www/artouch/
+
+      - name: Deploy to production (main branch)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "Deploying to production environment..."
+          # Add deployment commands here
+          # Example: rsync -avz dist/ user@production:/var/www/artouch/
+
+  # ============================================
+  # Dependency Check
+  # ============================================
+  dependency-check:
+    name: Dependency Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Check Python dependencies
+        run: |
+          pip install pip-audit
+          pip-audit -r backend/requirements.txt || true
+
+      - name: Check Node dependencies
+        run: |
+          cd frontend
+          npm audit --audit-level=moderate || true

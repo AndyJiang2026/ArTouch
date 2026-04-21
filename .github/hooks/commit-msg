@@ -1,0 +1,33 @@
+#!/bin/bash
+# AI-ASSISTED: Yes
+# AI-TOOL: Claude Code
+# PROMPT: Create commit-msg hook to validate commit message format
+# DATE: 2026-04-19
+# ENGINEER: System
+# RISK-LEVEL: P1
+#
+# 自动验证 commit message 格式: <type>(<scope>): <subject> [P0/P1/P2/P3]
+#
+
+commit_msg=$(cat "$1")
+bnf='#'
+
+# 跳过 merge commit
+if echo "$commit_msg" | grep -q '^Merge'; then
+    exit 0
+fi
+
+# 检查格式: <type>(<scope>): <subject> [P0/P1/P2/P3]
+if ! echo "$commit_msg" | grep -qE '^(feat|fix|docs|style|refactor|perf|test|security|ci|chore)(\([^)]+\))?: .+ \[P[0-3]\]$'; then
+    echo "❌ Commit message 格式错误！"
+    echo ""
+    echo "正确格式: <type>(<scope>): <subject> [P0/P1/P2/P3]"
+    echo ""
+    echo "示例: feat(auth): 实现用户登录功能 [P2]"
+    echo "类型: feat, fix, docs, style, refactor, perf, test, security, ci, chore"
+    echo ""
+    exit 1
+fi
+
+echo "✅ Commit message 格式验证通过"
+exit 0
