@@ -41,14 +41,14 @@ class NFCTag(Base):
     # 注意: sku_instance通过外键 sku_instance_id 关联, 不使用back_populates避免循环一对一问题
     creator = relationship("User", back_populates="created_tags", foreign_keys=[created_by])
     approver = relationship("User", back_populates="approved_tags", foreign_keys=[approved_by])
-    clicks = relationship("TagClick", back_populates="tag")
+    clicks = relationship("TagClick", back_populates="tag", cascade="all, delete-orphan")
 
 
 class TagClick(Base):
     __tablename__ = "tag_clicks"
 
     id = Column(Integer, primary_key=True, index=True)
-    tag_id = Column(Integer, ForeignKey("nfc_tags.id"), nullable=False)
+    tag_id = Column(Integer, ForeignKey("nfc_tags.id", ondelete="CASCADE"), nullable=False)
     visitor_id = Column(String(100), nullable=True)
     device_info = Column(String(500), nullable=True)
     ip_address = Column(String(50), nullable=True)

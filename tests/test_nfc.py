@@ -196,3 +196,226 @@ class TestNFCPlay:
             params={"visitor_id": "test_visitor_123"},
         )
         assert response.status_code == 200
+
+
+class TestNFCVerify:
+    """NFC验伪接口测试"""
+
+    def _derive_key_material(self, uid: str) -> str:
+        """Derive key material from UID (matches server logic)."""
+        import hashlib
+        import hmac
+        master_key = b"test_master_key_for_nfc"
+        uid_bytes = uid.encode('utf-8')
+        mac = hmac.new(master_key, uid_bytes, hashlib.sha256)
+        return mac.hexdigest()
+
+    def _compute_signature(self, key_material: str, uid: str, counter: int) -> str:
+        import hashlib
+        """Compute signature (matches server logic)."""
+        import hmac
+        key_bytes = key_material.encode('utf-8')
+        message = f"{uid.lower()}{counter}".encode('utf-8')
+        sig_mac = hmac.new(key_bytes, message, hashlib.sha256)
+        return sig_mac.hexdigest()
+
+    def _register_tag(self, test_db, uid: str, counter: int = 1, is_active: int = 1, product_name: str = None):
+        """Helper: Register a tag and return it."""
+        from app.models import NfcTagSecure
+        key_material = self._derive_key_material(uid)
+        signature = self._compute_signature(key_material, uid, counter)
+        
+        tag = NfcTagSecure(
+            uid=uid.lower(),
+            key_material=key_material,
+            signature=signature,
+            counter=counter,
+            is_active=is_active,
+            product_name=product_name,
+        )
+        test_db.add(tag)
+        test_db.commit()
+        test_db.refresh(tag)
+        return tag
+
+    def test_verify_tag_not_found(self, client: TestClient):
+        """测试标签未注册"""
+        response = client.post(
+            "/api/nfc/verify",
+            json={
+                "uid": "041234567890AB",
+                "signature": "a" * 64,
+                "counter": 1,
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["is_authentic"] is False
+        assert data["result"] == "tag_not_found"
+
+    def test_verify_success(self, client: TestClient, test_db: Session):
+        """测试验伪成功"""
+        uid = "041234567890ab"
+        tag = self._register_tag(test_db, uid, counter=1, product_name="Test Product")
+        
+        # Compute signature with counter=1
+        signature = self._compute_signature(tag.key_material, uid, counter=1)
+        
+        response = client.post(
+            "/api/nfc/verify",
+            json={
+                "uid": uid,
+                "signature": signature,
+                "counter": 1,
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["is_authentic"] is True
+        assert data["result"] == "ok"
+        assert data["product_name"] == "Test Product"
+        assert data["is_first_verify"] is True
+
+    def test_verify_signature_invalid(self, client: TestClient, test_db: Session):
+        """测试签名无效 - 提交错误签名"""
+        uid = "041234567890ab"
+        tag = self._register_tag(test_db, uid, counter=1)
+        
+        # Submit wrong signature
+        wrong_sig = "a" * 64
+        response = client.post(
+            "/api/nfc/verify",
+            json={
+                "uid": uid,
+                "signature": wrong_sig,
+                "counter": 1,
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["is_authentic"] is False
+        assert data["result"] == "signature_invalid"
+
+    def test_verify_counter_replay(self, client: TestClient, test_db: Session):
+        """测试计数器重放攻击"""
+        uid = "041234567890ac"
+        # Register with counter=5
+        tag = self._register_tag(test_db, uid, counter=5)
+        
+        # Compute signature with counter=5 (stored counter) so sig check passes
+        signature = self._compute_signature(tag.key_material, uid, counter=5)
+        
+        # Submit counter=3 (lower than stored)
+        response = client.post(
+            "/api/nfc/verify",
+            json={
+                "uid": uid,
+                "signature": signature,
+                "counter": 3,
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["is_authentic"] is False
+        assert data["result"] == "counter_replay"
+
+    def test_verify_tag_revoked(self, client: TestClient, test_db: Session):
+        """测试标签已吊销"""
+        uid = "041234567890ad"
+        tag = self._register_tag(test_db, uid, counter=1, is_active=0)
+        
+        signature = self._compute_signature(tag.key_material, uid, counter=1)
+        
+        response = client.post(
+            "/api/nfc/verify",
+            json={
+                "uid": uid,
+                "signature": signature,
+                "counter": 1,
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["is_authentic"] is False
+        assert data["result"] == "tag_revoked"
+
+    def test_verify_logs_created(self, client: TestClient, test_db: Session):
+        """测试验证日志创建"""
+        from app.models import VerificationLog
+
+        uid = "041234567890ae"
+        tag = self._register_tag(test_db, uid, counter=1)
+        
+        signature = self._compute_signature(tag.key_material, uid, counter=1)
+        
+        response = client.post(
+            "/api/nfc/verify",
+            json={
+                "uid": uid,
+                "signature": signature,
+                "counter": 1,
+            },
+        )
+        assert response.status_code == 200
+
+        # Check verification log was created
+        log = test_db.query(VerificationLog).filter(VerificationLog.uid == uid).first()
+        assert log is not None
+        assert log.is_success == 1
+        assert log.result == "ok"
+
+    def test_verify_uid_case_insensitive(self, client: TestClient, test_db: Session):
+        """测试UID大小写不敏感"""
+        uid = "041234567890AF"
+        tag = self._register_tag(test_db, uid.lower(), counter=1)
+        
+        signature = self._compute_signature(tag.key_material, uid.lower(), counter=1)
+        
+        # Submit with uppercase
+        response = client.post(
+            "/api/nfc/verify",
+            json={
+                "uid": "041234567890AF",
+                "signature": signature,
+                "counter": 1,
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["is_authentic"] is True
+
+    def test_verify_invalid_uid_format(self, client: TestClient):
+        """测试无效UID格式"""
+        response = client.post(
+            "/api/nfc/verify",
+            json={
+                "uid": "invalid",
+                "signature": "a" * 64,
+                "counter": 1,
+            },
+        )
+        assert response.status_code == 422  # Validation error
+
+    def test_verify_invalid_signature_format(self, client: TestClient):
+        """测试无效签名格式"""
+        response = client.post(
+            "/api/nfc/verify",
+            json={
+                "uid": "041234567890AB",
+                "signature": "not_hex",
+                "counter": 1,
+            },
+        )
+        assert response.status_code == 422  # Validation error
+
+    def test_verify_counter_must_be_positive(self, client: TestClient):
+        """测试计数器必须为正数"""
+        response = client.post(
+            "/api/nfc/verify",
+            json={
+                "uid": "041234567890AB",
+                "signature": "a" * 64,
+                "counter": 0,
+            },
+        )
+        assert response.status_code == 422  # Validation error

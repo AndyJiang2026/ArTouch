@@ -42,7 +42,7 @@ class NFCTagCreate(BaseModel):
 class NFCTagUpdate(BaseModel):
     video_id: int | None = None
     sku_id: int | None = None
-    status: NFCTagStatus | None = None
+    status: str | None = None
     expires_at: date | None = None
 
     @field_validator("video_id")
