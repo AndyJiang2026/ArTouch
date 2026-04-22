@@ -148,8 +148,17 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button class="btn-secondary" @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">确定</el-button>
+        <div class="dialog-footer">
+          <div class="footer-left">
+            <el-checkbox v-if="dialogType === 'edit'" v-model="deleteAfterSave" class="delete-checkbox">
+              <span class="delete-label">删除此标签</span>
+            </el-checkbox>
+          </div>
+          <div class="footer-right">
+            <el-button class="btn-secondary" @click="dialogVisible = false">取消</el-button>
+            <el-button type="primary" :loading="submitting" @click="handleSubmit">确定</el-button>
+          </div>
+        </div>
       </template>
     </el-dialog>
   </div>
@@ -172,6 +181,7 @@ const dialogType = ref('create')
 const submitting = ref(false)
 const formRef = ref(null)
 const currentEditId = ref(null)
+const deleteAfterSave = ref(false)
 
 const isAdmin = computed(() => authStore.isAdmin)
 
@@ -348,17 +358,28 @@ async function handleSubmit() {
           await api.post('/nfc-tags', submitData)
           ElMessage.success('创建成功')
         } else {
-          const updateData = {
-            video_id: form.video_id,
-            sku_id: form.sku_id || null,
-            status: form.status
+          if (deleteAfterSave.value) {
+            await ElMessageBox.confirm('你确认删除该条NFC标签？', '确认删除', {
+              confirmButtonText: '确认',
+              cancelButtonText: '取消',
+              type: 'warning'
+            })
+            await api.delete(`/nfc-tags/${currentEditId.value}`)
+            ElMessage.success('删除成功')
+          } else {
+            const updateData = {
+              video_id: form.video_id,
+              sku_id: form.sku_id || null,
+              status: form.status
+            }
+            if (form.expires_at) {
+              updateData.expires_at = form.expires_at
+            }
+            await api.put(`/nfc-tags/${currentEditId.value}`, updateData)
+            ElMessage.success('更新成功')
           }
-          if (form.expires_at) {
-            updateData.expires_at = form.expires_at
-          }
-          await api.put(`/nfc-tags/${currentEditId.value}`, updateData)
-          ElMessage.success('更新成功')
         }
+        deleteAfterSave.value = false
         dialogVisible.value = false
         fetchData()
       } catch (error) {
@@ -712,5 +733,15 @@ onMounted(() => {
   font-size: 12px;
   color: #86868b;
   margin-top: 4px;
+}
+
+.delete-checkbox {
+  color: #ff3b30;
+  font-weight: bold;
+}
+
+.delete-label {
+  color: #ff3b30;
+  font-weight: bold;
 }
 </style>

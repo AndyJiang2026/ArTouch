@@ -104,7 +104,7 @@ class TestConfigSettings:
     def test_nfc_base_url_default(self):
         """Test default NFC_BASE_URL."""
         settings = Settings()
-        assert settings.NFC_BASE_URL == "https://www.qiangguoshijie.com.cn/nfc"
+        assert settings.NFC_BASE_URL == "https://www.artouch.tech/nfc"
 
     def test_directories_exist_or_created(self):
         """Test that required directories are created."""

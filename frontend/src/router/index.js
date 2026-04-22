@@ -42,6 +42,11 @@ const routes = [
         path: 'settings',
         name: 'Settings',
         component: () => import('@/views/Settings.vue')
+      },
+      {
+        path: 'nfc-verify',
+        name: 'NFCVerify',
+        component: () => import('@/views/NFCVerify.vue')
       }
     ]
   }

@@ -85,28 +85,28 @@
         </div>
       </template>
       
-      <el-table :data="users" class="icloud-table" v-loading="loadingUsers">
-        <el-table-column prop="username" label="用户名" align="center" />
-        <el-table-column prop="role" label="角色" width="120" align="center">
+      <el-table :data="users" class="icloud-table" v-loading="loadingUsers" style="width: 100%;" table-layout="fixed">
+        <el-table-column prop="username" label="用户名" min-width="100" align="center" />
+        <el-table-column prop="role" label="角色" min-width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="row.role === 'admin' ? 'danger' : 'success'" size="small">
               {{ row.role === 'admin' ? '管理员' : '操作员' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="is_active" label="状态" width="80" min-width="80" align="center">
+        <el-table-column prop="is_active" label="状态" min-width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="row.is_active ? 'success' : 'danger'" size="small">
               {{ row.is_active ? '启用' : '禁用' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="创建时间" width="180" align="center">
+        <el-table-column prop="created_at" label="创建时间" min-width="180" align="center">
           <template #default="{ row }">
             {{ formatDate(row.created_at) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150" align="center">
+        <el-table-column label="操作" min-width="150" align="center">
           <template #default="{ row }">
             <div class="action-btns">
               <el-button 
@@ -487,5 +487,22 @@ onMounted(() => {
 :deep(.el-dialog__footer) {
   padding: 16px 24px;
   background: #f5f5f7;
+}
+
+/* 用户信息表格居中 */
+:deep(.el-descriptions__cell) {
+  text-align: center;
+}
+
+:deep(.el-descriptions__label) {
+  text-align: center;
+}
+
+:deep(.el-descriptions__content) {
+  text-align: center;
+}
+
+:deep(.el-descriptions-item) {
+  align-content: center;
 }
 </style>

@@ -23,9 +23,10 @@ from app.api.nfc import router as nfc_router
 from app.api.nfc_tags import router as nfc_tags_router
 from app.api.sku_instances import router as sku_instances_router
 from app.api.skus import router as skus_router
-from app.api.static_protected import router as static_protected_router
+from app.api.nfc_secure import router as nfc_secure_router
 from app.api.users import router as users_router
 from app.api.videos import router as videos_router
+from app.api.static_protected import router as static_protected_router
 from app.config import settings
 from app.core.security import get_password_hash
 from app.database import Base, engine
@@ -109,8 +110,8 @@ def _get_cors_origins() -> list:
         return [o.strip() for o in env_origins.split(",") if o.strip()]
     # Default origins if not configured
     return [
-        "https://www.qiangguoshijie.com.cn",
-        "https://qiangguoshijie.com.cn",
+        "https://www.artouch.tech",
+        "https://artouch.tech",
     ]
 
 
@@ -170,6 +171,7 @@ app.include_router(sku_instances_router)
 app.include_router(nfc_tags_router)
 app.include_router(dashboard_router)
 app.include_router(nfc_router)
+app.include_router(nfc_secure_router)
 app.include_router(users_router)
 
 # Conditional static file serving

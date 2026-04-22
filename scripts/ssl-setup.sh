@@ -21,8 +21,8 @@
 
 set -e
 
-DOMAIN="${DOMAIN:-www.qiangguoshijie.com.cn}"
-EMAIL="${EMAIL:-admin@qiangguoshijie.com.cn}"
+DOMAIN="${DOMAIN:-www.artouch.tech}"
+EMAIL="${EMAIL:-admin@artouch.tech}"
 CERT_DIR="/etc/letsencrypt/live/${DOMAIN}"
 NGINX_SSL_CONF="/etc/nginx/sites-available/artouch-ssl"
 

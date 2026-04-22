@@ -3,8 +3,8 @@
 
 set -e
 
-DOMAIN="www.qiangguoshijie.com.cn"
-EMAIL="admin@qiangguoshijie.com.cn"
+DOMAIN="www.artouch.tech"
+EMAIL="admin@artouch.tech"
 CERT_PATH="/etc/letsencrypt/live/$DOMAIN"
 
 echo "========================================="

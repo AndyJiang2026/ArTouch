@@ -17,6 +17,12 @@ const api = axios.create({
   },
 })
 
+// Separate axios instance for refresh token (avoids interceptor loop)
+const refreshApi = axios.create({
+  baseURL: '/api',
+  timeout: 30000,
+})
+
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
@@ -30,20 +36,67 @@ api.interceptors.request.use(
 )
 
 // Response interceptor
-let isHandlingAuthError = false
+let isRefreshing = false
+let refreshSubscribers = []
+
+function subscribeTokenRefresh(callback) {
+  refreshSubscribers.push(callback)
+}
+
+function onTokenRefreshed(newToken) {
+  refreshSubscribers.forEach((callback) => callback(newToken))
+  refreshSubscribers = []
+}
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config
+
     if (error.response) {
       const { status, data } = error.response
 
-      if (status === 401 && !isHandlingAuthError) {
-        isHandlingAuthError = true
+      // Handle 401 - try refresh token first
+      if (status === 401 && !originalRequest._retry) {
+        if (isRefreshing) {
+          // Already refreshing, queue this request
+          return new Promise((resolve) => {
+            subscribeTokenRefresh((newToken) => {
+              originalRequest.headers.Authorization = `Bearer ${newToken}`
+              resolve(api(originalRequest))
+            })
+          })
+        }
+
+        originalRequest._retry = true
+        isRefreshing = true
+
+        const authStore = useAuthStore()
+        const result = await authStore.refreshAccessToken()
+
+        if (result) {
+          // Refresh succeeded, update header and retry
+          isRefreshing = false
+          onTokenRefreshed(result.access_token)
+          originalRequest.headers.Authorization = `Bearer ${result.access_token}`
+          return api(originalRequest)
+        } else {
+          // Refresh failed, logout and redirect
+          isRefreshing = false
+          authStore.logout()
+          router.push({ name: 'Login' })
+          ElMessage.error('登录已过期，请重新登录')
+          return Promise.reject(error)
+        }
+      }
+
+      if (status === 401 && originalRequest._retry) {
+        // Refresh already tried and failed
         const authStore = useAuthStore()
         authStore.logout()
         router.push({ name: 'Login' })
         ElMessage.error('登录已过期，请重新登录')
+        return Promise.reject(error)
       } else if (status === 403) {
         ElMessage.error(data.detail || '没有权限执行此操作')
       } else if (status === 404) {

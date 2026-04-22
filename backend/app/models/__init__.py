@@ -15,11 +15,13 @@ __all__ = [
     "SKU",
     "Base",
     "CulturalProduct",
+    "NfcTagSecure",
     "NFCTag",
     "SKUInstance",
     "SessionLocal",
     "TagClick",
     "User",
+    "VerificationLog",
     "Video",
     "cultural_product_videos",
     "engine",
@@ -29,6 +31,7 @@ __all__ = [
 # Import all models after Base is defined
 from app.models.cultural_product import CulturalProduct
 from app.models.nfc_tag import NFCTag, TagClick
+from app.models.nfc_secure import NfcTagSecure, VerificationLog
 from app.models.sku import SKU
 from app.models.sku_instance import SKUInstance
 from app.models.user import User

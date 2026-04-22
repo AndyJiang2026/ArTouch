@@ -33,6 +33,10 @@
           <el-icon><Setting /></el-icon>
           <span>设置</span>
         </el-menu-item>
+        <el-menu-item index="/nfc-verify">
+          <el-icon><Key /></el-icon>
+          <span>NFC验伪</span>
+        </el-menu-item>
       </el-menu>
 
       <!-- User Info -->

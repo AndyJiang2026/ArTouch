@@ -11,15 +11,15 @@
         </div>
       </template>
 
-      <el-table :data="tableData" style="width: 100%" class="icloud-table">
-        <el-table-column prop="code" label="编号" width="80" min-width="80" align="center">
+      <el-table :data="tableData" style="width: 100%" class="icloud-table" table-layout="fixed">
+        <el-table-column prop="code" label="编号" width="100" align="center">
           <template #default="{ row }">
             <span class="mono">{{ row.code }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="name" label="中文名" min-width="150" show-overflow-tooltip />
-        <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="status" label="状态" width="80" min-width="80" align="center">
+        <el-table-column prop="description" label="描述" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="status" label="状态" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">
               {{ row.status === 'active' ? '启用' : '禁用' }}

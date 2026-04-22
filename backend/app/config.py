@@ -45,7 +45,8 @@ class Settings(BaseSettings):
     ALLOWED_VIDEO_TYPES: list = ["video/mp4", "video/mpeg", "video/quicktime"]
 
     # NFC settings
-    NFC_BASE_URL: str = "https://www.qiangguoshijie.com.cn/nfc"
+    NFC_BASE_URL: str = "https://www.artouch.tech/nfc"
+    NFC_MASTER_KEY: str = os.getenv("NFC_MASTER_KEY", "")  # If empty, auto-generates per-session (dev only)
 
     # Static file protection (signed URL)
     PROTECT_STATIC_FILES: bool = os.getenv("PROTECT_STATIC_FILES", "false").lower() == "true"

@@ -14,28 +14,23 @@
       </template>
       
       <el-table :data="tableData" style="width: 100%" class="icloud-table">
-        <el-table-column prop="code" label="编号" width="80" min-width="80" align="center" />
-        <el-table-column prop="name" label="中文名" min-width="150" show-overflow-tooltip />
-        <el-table-column prop="duration" label="时长" width="90" align="center">
+        <el-table-column prop="code" label="编号" min-width="80" align="center" />
+        <el-table-column prop="name" label="中文名" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="duration" label="时长" min-width="80" align="center">
           <template #default="{ row }">
             {{ row.duration ? formatDuration(row.duration) : '-' }}
           </template>
         </el-table-column>
-        <el-table-column prop="file_size" label="大小" width="90" align="center">
+        <el-table-column prop="file_size" label="大小" min-width="80" align="center">
           <template #default="{ row }">
             {{ row.file_size ? formatFileSize(row.file_size) : '-' }}
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="80" min-width="80" align="center">
+        <el-table-column prop="status" label="状态" min-width="80" align="center">
           <template #default="{ row }">
             <el-tag :type="getStatusType(row.status)" size="small">
               {{ getStatusText(row.status) }}
             </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="created_at" label="创建时间" width="150" align="center">
-          <template #default="{ row }">
-            {{ formatDate(row.created_at) }}
           </template>
         </el-table-column>
         <el-table-column label="操作" width="220" align="center" fixed="right">

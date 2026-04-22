@@ -67,7 +67,7 @@ services:
       - DATABASE_URL=postgresql://artouch:${POSTGRES_PASSWORD:-artouch_secure_pass_2024}@db:5432/artouch
       - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=${SECRET_KEY}
-      - NFC_BASE_URL=${NFC_BASE_URL:-https://www.qiangguoshijie.com.cn/nfc}
+      - NFC_BASE_URL=${NFC_BASE_URL:-https://www.artouch.tech/nfc}
     volumes:
       - ./videos:/app/videos
       - ./data:/app/data
