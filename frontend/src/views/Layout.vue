@@ -1,6 +1,7 @@
 <template>
   <el-container class="layout-container">
-    <el-aside width="220px" class="sidebar">
+    <!-- Desktop Sidebar (≥768px) -->
+    <el-aside width="220px" class="sidebar desktop-sidebar">
       <div class="logo">
         <h2><span class="logo-ar">Ar</span><span class="logo-touch">Touch</span></h2>
       </div>
@@ -29,6 +30,10 @@
           <el-icon><Postcard /></el-icon>
           <span>NFC标签</span>
         </el-menu-item>
+        <el-menu-item index="/interactive-games">
+          <el-icon><Promotion /></el-icon>
+          <span>互动游戏</span>
+        </el-menu-item>
         <el-menu-item index="/settings">
           <el-icon><Setting /></el-icon>
           <span>设置</span>
@@ -46,9 +51,78 @@
       </div>
     </el-aside>
 
+    <!-- Mobile Drawer Sidebar (<768px) -->
+    <el-drawer
+      v-model="drawerVisible"
+      direction="ltr"
+      :size="220"
+      :show-close="false"
+      :with-header="false"
+      class="mobile-drawer"
+    >
+      <div class="drawer-content">
+        <div class="logo">
+          <h2><span class="logo-ar">Ar</span><span class="logo-touch">Touch</span></h2>
+        </div>
+        <el-menu
+          :default-active="$route.name"
+          class="sidebar-menu"
+          router
+          @select="onMenuSelect"
+        >
+          <el-menu-item index="/">
+            <el-icon><HomeFilled /></el-icon>
+            <span>首页</span>
+          </el-menu-item>
+          <el-menu-item index="/cultural-products">
+            <el-icon><Goods /></el-icon>
+            <span>文创品管理</span>
+          </el-menu-item>
+          <el-menu-item index="/video-management">
+            <el-icon><VideoCamera /></el-icon>
+            <span>视频管理</span>
+          </el-menu-item>
+          <el-menu-item index="/skus">
+            <el-icon><Box /></el-icon>
+            <span>SKU管理</span>
+          </el-menu-item>
+          <el-menu-item index="/nfc-tags">
+            <el-icon><Postcard /></el-icon>
+            <span>NFC标签</span>
+          </el-menu-item>
+          <el-menu-item index="/interactive-games">
+            <el-icon><Promotion /></el-icon>
+            <span>互动游戏</span>
+          </el-menu-item>
+          <el-menu-item index="/settings">
+            <el-icon><Setting /></el-icon>
+            <span>设置</span>
+          </el-menu-item>
+          <el-menu-item index="/nfc-verify">
+            <el-icon><Key /></el-icon>
+            <span>NFC验伪</span>
+          </el-menu-item>
+        </el-menu>
+
+        <!-- User Info -->
+        <div class="user-section">
+          <div class="user-avatar">{{ userInitial }}</div>
+          <span class="user-name">{{ authStore.user?.username }}</span>
+        </div>
+      </div>
+    </el-drawer>
+
     <el-container>
       <el-header class="header">
         <div class="header-left">
+          <!-- Hamburger button (mobile only) -->
+          <el-button
+            v-if="isMobile"
+            class="hamburger-btn"
+            :icon="Operation"
+            text
+            @click="drawerVisible = true"
+          />
           <h3>{{ $route.name === 'Dashboard' ? '首页' : $route.meta?.title || $route.name }}</h3>
         </div>
         <div class="header-right">
@@ -80,13 +154,43 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
+import { Operation, Promotion } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const authStore = useAuthStore()
+
+const drawerVisible = ref(false)
+
+// Responsive detection
+const MOBILE_BREAKPOINT = 768
+const isMobile = ref(window.innerWidth < MOBILE_BREAKPOINT)
+
+function onResize() {
+  isMobile.value = window.innerWidth < MOBILE_BREAKPOINT
+  // Close drawer when resizing to desktop
+  if (!isMobile.value) {
+    drawerVisible.value = false
+  }
+}
+
+function onMenuSelect() {
+  // Auto-close drawer on mobile after selecting a menu item
+  if (isMobile.value) {
+    drawerVisible.value = false
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('resize', onResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', onResize)
+})
 
 const userInitial = computed(() => {
   return authStore.user?.username?.charAt(0).toUpperCase() || 'A'
@@ -221,6 +325,12 @@ function handleCommand(command) {
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .header-left h3 {
   margin: 0;
   font-size: 17px;
@@ -254,5 +364,54 @@ function handleCommand(command) {
 .main-content {
   background: #f5f5f7;
   padding: 24px;
+}
+
+/* Hamburger button */
+.hamburger-btn {
+  font-size: 20px;
+  color: #1d1d1f;
+  padding: 6px;
+}
+
+/* Mobile drawer */
+.mobile-drawer {
+  display: none;
+}
+
+.mobile-drawer :deep(.el-drawer__body) {
+  padding: 0;
+  overflow: hidden;
+}
+
+.drawer-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* ===== Responsive: Mobile (<768px) ===== */
+@media (max-width: 767px) {
+  .desktop-sidebar {
+    display: none !important;
+  }
+
+  .mobile-drawer {
+    display: block;
+  }
+
+  .header {
+    padding: 0 12px;
+  }
+
+  .main-content {
+    padding: 16px;
+  }
+}
+
+/* ===== Responsive: Desktop (≥768px) ===== */
+@media (min-width: 768px) {
+  .mobile-drawer {
+    display: none !important;
+  }
 }
 </style>

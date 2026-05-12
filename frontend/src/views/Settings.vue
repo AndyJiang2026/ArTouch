@@ -12,7 +12,8 @@
         ref="passwordFormRef"
         :model="passwordForm"
         :rules="passwordRules"
-        label-width="120px"
+        :label-position="isMobile ? 'top' : 'right'"
+        :label-width="isMobile ? undefined : '120px'"
         style="max-width: 500px;"
       >
         <el-form-item label="原密码" prop="oldPassword">
@@ -56,7 +57,7 @@
         </div>
       </template>
       
-      <el-descriptions :column="2" border>
+      <el-descriptions :column="isMobile ? 1 : 2" border>
         <el-descriptions-item label="用户名">
           {{ user?.username }}
         </el-descriptions-item>
@@ -65,7 +66,7 @@
             {{ user?.role === 'admin' ? '管理员' : '操作员' }}
           </el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="账号状态">
+        <el-descriptions-item label="创建时间">
           <span>{{ formatCreatedAt(user?.created_at) }}</span>
         </el-descriptions-item>
         <el-descriptions-item label="登录次数">
@@ -101,14 +102,29 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="创建时间" min-width="180" align="center">
+        <el-table-column prop="created_at" label="创建时间" min-width="140" align="center">
           <template #default="{ row }">
             {{ formatDate(row.created_at) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" min-width="150" align="center">
+        <el-table-column label="操作" min-width="200" align="center">
           <template #default="{ row }">
             <div class="action-btns">
+              <el-button 
+                type="warning"
+                size="small" 
+                @click="showEditUserDialog(row)"
+              >
+                编辑
+              </el-button>
+              <el-button 
+                v-if="row.id !== user?.id" 
+                :type="row.is_active ? 'danger' : 'success'"
+                size="small" 
+                @click="handleToggleUser(row)"
+              >
+                {{ row.is_active ? '禁用' : '启用' }}
+              </el-button>
               <el-button 
                 v-if="row.id !== user?.id" 
                 type="danger" 
@@ -126,16 +142,18 @@
     <!-- 创建用户对话框 -->
     <el-dialog
       v-model="dialogVisible"
-      title="创建操作员"
-      width="450px"
+      :title="editingUserId ? '编辑用户' : '创建操作员'"
+      width="90%"
       class="icloud-dialog"
+      style="max-width: 450px;"
       @close="resetForm"
     >
       <el-form
         ref="createFormRef"
         :model="createForm"
         :rules="createRules"
-        label-width="80px"
+        :label-position="isMobile ? 'top' : 'right'"
+        :label-width="isMobile ? undefined : '80px'"
       >
         <el-form-item label="用户名" prop="username">
           <el-input
@@ -162,7 +180,7 @@
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="creating" @click="handleCreate">
-          创建
+          {{ editingUserId ? '更新' : '创建' }}
         </el-button>
       </template>
     </el-dialog>
@@ -170,7 +188,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/api'
@@ -182,6 +200,8 @@ const submitting = ref(false)
 const creating = ref(false)
 const loadingUsers = ref(false)
 const dialogVisible = ref(false)
+const editingUserId = ref(null)
+const isMobile = ref(window.innerWidth <= 768)
 
 const user = computed(() => authStore.user)
 const isAdmin = computed(() => authStore.isAdmin)
@@ -288,10 +308,20 @@ async function fetchUsers() {
 }
 
 function showCreateDialog() {
+  editingUserId.value = null
+  dialogVisible.value = true
+}
+
+function showEditUserDialog(row) {
+  editingUserId.value = row.id
+  createForm.username = row.username
+  createForm.password = ''
+  createForm.role = row.role
   dialogVisible.value = true
 }
 
 function resetForm() {
+  editingUserId.value = null
   createForm.username = ''
   createForm.password = ''
   createForm.role = 'operator'
@@ -305,14 +335,27 @@ async function handleCreate() {
     if (valid) {
       creating.value = true
       try {
-        await api.post('/users/', {
-          username: createForm.username,
-          password: createForm.password,
-          role: createForm.role,
-          is_active: true
-        })
-        ElMessage.success('创建成功')
+        if (editingUserId.value) {
+          const updatePayload = {
+            username: createForm.username,
+            role: createForm.role
+          }
+          if (createForm.password) {
+            updatePayload.password = createForm.password
+          }
+          await api.put(`/users/${editingUserId.value}`, updatePayload)
+          ElMessage.success('更新成功')
+        } else {
+          await api.post('/users/', {
+            username: createForm.username,
+            password: createForm.password,
+            role: createForm.role,
+            is_active: true
+          })
+          ElMessage.success('创建成功')
+        }
         dialogVisible.value = false
+        editingUserId.value = null
         fetchUsers()
       } catch (error) {
         // Error handled by interceptor
@@ -321,6 +364,28 @@ async function handleCreate() {
       }
     }
   })
+}
+
+async function handleToggleUser(row) {
+  try {
+    const action = row.is_active ? '禁用' : '启用'
+    await ElMessageBox.confirm(
+      `确定要${action}用户"${row.username}"吗？`,
+      `${action}确认`,
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    await api.put(`/users/${row.id}`, { is_active: !row.is_active })
+    ElMessage.success(`${action}成功`)
+    fetchUsers()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('操作失败:', error)
+    }
+  }
 }
 
 async function handleDeleteUser(row) {
@@ -346,7 +411,16 @@ async function handleDeleteUser(row) {
 
 onMounted(() => {
   fetchUsers()
+  window.addEventListener('resize', handleResize)
 })
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
+})
+
+function handleResize() {
+  isMobile.value = window.innerWidth <= 768
+}
 </script>
 
 <style scoped>
@@ -504,5 +578,60 @@ onMounted(() => {
 
 :deep(.el-descriptions-item) {
   align-content: center;
+}
+
+/* ========== 移动端适配 ========== */
+@media (max-width: 768px) {
+  .settings-page :deep(.el-card__body) {
+    padding: 12px;
+  }
+
+  .settings-page :deep(.el-card__header) {
+    padding: 12px 14px;
+  }
+
+  :deep(.el-card) {
+    margin-top: 12px !important;
+  }
+
+  :deep(.el-form) {
+    max-width: 100% !important;
+  }
+
+  :deep(.el-form-item) {
+    margin-bottom: 18px;
+  }
+
+  :deep(.el-dialog) {
+    width: 92% !important;
+    max-width: 92% !important;
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 16px;
+  }
+
+  :deep(.el-dialog__header) {
+    padding: 14px 16px;
+  }
+
+  :deep(.el-dialog__footer) {
+    padding: 12px 16px;
+  }
+
+  :deep(.el-table__header-wrapper th),
+  :deep(.el-table__body-wrapper td) {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+
+  .card-header {
+    font-size: 14px;
+  }
+
+  .card-header .el-button {
+    font-size: 12px;
+    padding: 5px 10px;
+  }
 }
 </style>

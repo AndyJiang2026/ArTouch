@@ -38,7 +38,7 @@ def list_cultural_products(
     total = query.count()
 
     # Get paginated items
-    items = query.order_by(CulturalProduct.id.desc()).offset(skip).limit(limit).all()
+    items = query.order_by(CulturalProduct.id.asc()).offset(skip).limit(limit).all()
 
     page = (skip // limit) + 1 if limit > 0 else 1
 

@@ -28,16 +28,14 @@ class NFCTagService:
     def __init__(self, db: Session):
         self.db = db
 
-    def generate_url_code(
-        self,
-        cultural_product: CulturalProduct,
-        video: Video,
-        sku: SKU | None = None,
-    ) -> str:
-        """Generate URL code in format {cp_code}_{video_code}_{sku_code}."""
-        if sku:
-            return f"{cultural_product.code}_{video.code}_{sku.code}"
-        return f"{cultural_product.code}_{video.code}"
+    def generate_url_code(self) -> str:
+        """Generate sequential 3-digit URL code (001, 002, 003...)."""
+        from sqlalchemy import func
+        max_code = self.db.query(func.max(NFCTag.url_code)).scalar()
+        if max_code and max_code.isdigit():
+            next_num = int(max_code) + 1
+            return str(next_num).zfill(3)
+        return "001"
 
     def get_nfc_tags(
         self,
@@ -57,7 +55,7 @@ class NFCTagService:
             query = query.filter(NFCTag.cultural_product_id == cultural_product_id)
 
         total = query.count()
-        items = query.offset(skip).limit(limit).all()
+        items = query.order_by(NFCTag.id.asc()).offset(skip).limit(limit).all()
         return items, total
 
     def get_nfc_tag_or_404(self, tag_id: int) -> NFCTag:
@@ -99,8 +97,8 @@ class NFCTagService:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="SKU不存在")
             sku_code = sku.code
 
-        # Generate URL code
-        url_code = self.generate_url_code(product, video, sku_code)
+        # Generate sequential URL code
+        url_code = self.generate_url_code()
 
         # Check if URL code already exists
         existing = self.db.query(NFCTag).filter(NFCTag.url_code == url_code).first()

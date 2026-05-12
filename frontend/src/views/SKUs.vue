@@ -24,18 +24,18 @@
             {{ row.default_video_id ? getVideoName(row.default_video_id) : '-' }}
           </template>
         </el-table-column>
-        <el-table-column prop="production_date" label="生产日期" width="110" align="center">
+        <el-table-column prop="production_date" label="生产日期" min-width="110" align="center">
           <template #default="{ row }">
             {{ row.production_date || '-' }}
           </template>
         </el-table-column>
         <el-table-column prop="notes" label="备注" min-width="100" show-overflow-tooltip />
-        <el-table-column prop="created_at" label="创建时间" width="150" align="center">
+        <el-table-column prop="created_at" label="创建时间" min-width="150" align="center">
           <template #default="{ row }">
             {{ formatDate(row.created_at) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="160" align="center" fixed="right">
+        <el-table-column label="操作" min-width="120" align="center">
           <template #default="{ row }">
             <div class="action-btns">
               <el-button type="primary" size="small" @click="showDialog('edit', row)">
@@ -66,7 +66,8 @@
     <el-dialog
       v-model="dialogVisible"
       :title="dialogTitle"
-      width="550px"
+      width="90%"
+      max-width="550px"
       @close="resetForm"
     >
       <el-form ref="formRef" :model="form" :rules="formRules" label-width="100px">
@@ -423,5 +424,63 @@ onMounted(() => {
   justify-content: center;
   align-items: center;
   gap: 8px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  :deep(.el-dialog) {
+    width: 92% !important;
+    max-width: 92% !important;
+    margin: 0 auto;
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 16px;
+  }
+
+  :deep(.el-form-item) {
+    flex-wrap: wrap;
+  }
+
+  :deep(.el-form-item__label) {
+    width: 80px !important;
+    font-size: 12px;
+  }
+
+  :deep(.el-form-item__content) {
+    margin-left: 80px !important;
+    width: calc(100% - 80px);
+  }
+
+  :deep(.el-dialog__header) {
+    padding: 14px 16px;
+  }
+
+  :deep(.el-dialog__footer) {
+    padding: 12px 16px;
+  }
+
+  :deep(.el-dialog__title) {
+    font-size: 15px;
+  }
+
+  .pagination-wrapper {
+    justify-content: center;
+    overflow-x: auto;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .card-header span {
+    text-align: center;
+  }
+
+  .card-header :deep(.el-button--primary) {
+    width: 100%;
+  }
 }
 </style>

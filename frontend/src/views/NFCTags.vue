@@ -10,53 +10,61 @@
       </div>
 
       <el-table :data="tableData" class="icloud-table">
-        <el-table-column label="URL码" width="180" align="center">
+        <el-table-column label="URL码" width="100" align="center">
           <template #default="{ row }">
-            <code class="code-tag">{{ getUrlCode(row) }}</code>
+            <code class="code-tag">{{ row.url_code }}</code>
           </template>
         </el-table-column>
-        <el-table-column label="文创品" min-width="150" align="center">
+        <el-table-column label="文创品" min-width="130" align="center">
           <template #default="{ row }">
             {{ getProductName(row.cultural_product_id) }}
           </template>
         </el-table-column>
-        <el-table-column label="视频" min-width="150" align="center">
+        <el-table-column label="视频" min-width="130" align="center">
           <template #default="{ row }">
             {{ getVideoName(row.video_id) }}
           </template>
         </el-table-column>
-        <el-table-column label="SKU" min-width="120" align="center">
+        <el-table-column label="SKU" min-width="100" align="center">
           <template #default="{ row }">
             {{ row.sku_id ? getSkuName(row.sku_id) : '-' }}
           </template>
         </el-table-column>
-        <el-table-column prop="approval_status" label="审批状态" width="100" min-width="100" align="center">
+        <el-table-column label="互动游戏" width="120" align="center">
+          <template #default="{ row }">
+            <div class="game-toggle-cell">
+              <el-switch
+                :model-value="row.game_mode"
+                size="small"
+                :loading="togglingGameId === row.id"
+                @change="(val) => handleGameToggle(row, val)"
+              />
+              <span v-if="row.game_mode && row.game_album_id" class="game-name-inline">{{ getGameName(row.game_album_id) }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="approval_status" label="审批状态" width="110" align="center">
           <template #default="{ row }">
             <span class="status-badge" :class="getApprovalClass(row.approval_status)">
               {{ getApprovalText(row.approval_status) }}
             </span>
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="80" min-width="80" align="center">
+        <el-table-column prop="status" label="状态" width="90" align="center">
           <template #default="{ row }">
             <span class="status-dot" :class="getStatusClass(row.status)"></span>
           </template>
         </el-table-column>
-        <el-table-column prop="expires_at" label="过期时间" width="120" align="center">
-          <template #default="{ row }">
-            <span class="text-muted">{{ row.expires_at || '-' }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="220" fixed="right" align="center">
+        <el-table-column label="操作" width="260" align="center">
           <template #default="{ row }">
             <div class="action-btns">
               <el-button v-if="isAdmin" type="success" size="small" @click="handleApprove(row)">
                 通过
               </el-button>
-              <el-button v-if="isAdmin" type="danger" size="small" @click="handleReject(row)">
+              <el-button v-if="isAdmin" type="warning" size="small" @click="handleReject(row)">
                 驳回
               </el-button>
-              <el-button type="warning" size="small" @click="showDialog('edit', row)">
+              <el-button type="primary" size="small" @click="showDialog('edit', row)">
                 编辑
               </el-button>
               <el-button type="danger" size="small" @click="handleDelete(row)">
@@ -84,13 +92,14 @@
     <el-dialog
       v-model="dialogVisible"
       :title="dialogTitle"
-      width="500px"
+      width="90%"
+      max-width="500px"
       class="icloud-dialog"
       @close="resetForm"
     >
-      <el-form ref="formRef" :model="form" :rules="formRules" label-width="90px">
+      <el-form ref="formRef" :model="form" :rules="formRules" :label-position="isMobile ? 'top' : 'right'">
         <el-form-item label="文创品" prop="cultural_product_id">
-          <el-select v-model="form.cultural_product_id" placeholder="请选择文创品" style="width: 100%;" :disabled="dialogType === 'edit'">
+          <el-select v-model="form.cultural_product_id" placeholder="请选择文创品" style="width: 100%;">
             <el-option
               v-for="product in products"
               :key="product.id"
@@ -99,13 +108,27 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="视频" prop="video_id">
+        <el-form-item label="互动模式">
+          <el-switch v-model="form.game_mode" active-text="游戏" inactive-text="视频" />
+          <span class="form-tip" style="margin-left:10px">开启后触碰NFC将跳转互动游戏</span>
+        </el-form-item>
+        <el-form-item label="视频" prop="video_id" v-if="!form.game_mode">
           <el-select v-model="form.video_id" placeholder="请选择视频" style="width: 100%;">
             <el-option
               v-for="video in videos"
               :key="video.id"
               :label="`${video.code} - ${video.name}`"
               :value="video.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="互动游戏" prop="game_album_id" v-if="form.game_mode">
+          <el-select v-model="form.game_album_id" placeholder="请选择互动游戏" style="width: 100%;">
+            <el-option
+              v-for="game in games"
+              :key="game.id"
+              :label="game.title"
+              :value="game.id"
             />
           </el-select>
         </el-form-item>
@@ -170,12 +193,19 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '@/api'
 import { useAuthStore } from '@/stores/auth'
 
+const isMobile = ref(window.innerWidth <= 768)
+
+function checkMobile() {
+  isMobile.value = window.innerWidth <= 768
+}
+
 const authStore = useAuthStore()
 
 const tableData = ref([])
 const products = ref([])
 const videos = ref([])
 const skus = ref([])
+const games = ref([])
 const dialogVisible = ref(false)
 const dialogType = ref('create')
 const submitting = ref(false)
@@ -184,6 +214,7 @@ const currentEditId = ref(null)
 const deleteAfterSave = ref(false)
 
 const isAdmin = computed(() => authStore.isAdmin)
+const togglingGameId = ref(null)
 
 const pagination = reactive({
   page: 1,
@@ -195,6 +226,8 @@ const form = reactive({
   cultural_product_id: null,
   video_id: null,
   sku_id: null,
+  game_album_id: null,
+  game_mode: false,
   expires_at: '',
   status: 'active'
 })
@@ -205,6 +238,9 @@ const formRules = {
   ],
   video_id: [
     { required: true, message: '请选择视频', trigger: 'change' }
+  ],
+  game_album_id: [
+    { required: true, message: '请选择互动游戏', trigger: 'change' }
   ]
 }
 
@@ -234,14 +270,10 @@ function getSkuName(skuId) {
   return sku ? `${sku.code} - ${sku.name}` : '-'
 }
 
-function getUrlCode(row) {
-  const product = products.value.find(p => p.id === row.cultural_product_id)
-  const video = videos.value.find(v => v.id === row.video_id)
-  const sku = row.sku_id ? skus.value.find(s => s.id === row.sku_id) : null
-  const productCode = product?.code || 'XXX'
-  const videoCode = video?.code || 'XXX'
-  const skuCode = sku?.code || 'XXX'
-  return `/nfc/${productCode}/${videoCode}/${skuCode}`
+function getGameName(gameId) {
+  if (!gameId) return '-'
+  const game = games.value.find(g => g.id === gameId)
+  return game ? game.title : '-'
 }
 
 function getApprovalClass(status) {
@@ -313,14 +345,25 @@ async function fetchSkus() {
   }
 }
 
+async function fetchGames() {
+  try {
+    const response = await api.get('/gallery/')
+    games.value = Array.isArray(response.data) ? response.data : response.data.items || []
+  } catch (error) {
+    console.error('获取互动游戏列表失败:', error)
+  }
+}
+
 function showDialog(type, row = null) {
   dialogType.value = type
   if (type === 'edit' && row) {
     currentEditId.value = row.id
     Object.assign(form, {
       cultural_product_id: row.cultural_product_id,
-      video_id: row.video_id,
+      video_id: row.video_id || null,
       sku_id: row.sku_id,
+      game_album_id: row.game_album_id || null,
+      game_mode: !!row.game_album_id,
       expires_at: row.expires_at || '',
       status: row.status
     })
@@ -335,6 +378,8 @@ function resetForm() {
     cultural_product_id: null,
     video_id: null,
     sku_id: null,
+    game_album_id: null,
+    game_mode: false,
     expires_at: '',
     status: 'active'
   })
@@ -349,8 +394,10 @@ async function handleSubmit() {
       try {
         const submitData = {
           cultural_product_id: form.cultural_product_id,
-          video_id: form.video_id,
+          video_id: form.game_mode ? null : form.video_id,
           sku_id: form.sku_id || null,
+          game_album_id: form.game_mode ? (form.game_album_id || null) : null,
+          game_mode: form.game_mode,
           expires_at: form.expires_at || null
         }
 
@@ -368,8 +415,11 @@ async function handleSubmit() {
             ElMessage.success('删除成功')
           } else {
             const updateData = {
-              video_id: form.video_id,
+              cultural_product_id: form.cultural_product_id,
+              video_id: form.game_mode ? null : form.video_id,
               sku_id: form.sku_id || null,
+              game_album_id: form.game_mode ? (form.game_album_id || null) : null,
+              game_mode: form.game_mode,
               status: form.status
             }
             if (form.expires_at) {
@@ -454,11 +504,39 @@ async function handleDelete(row) {
   }
 }
 
+async function handleGameToggle(row, val) {
+  // Toggle ON requires game_album_id to be set
+  if (val && !row.game_album_id) {
+    ElMessage.warning('请先编辑标签选择互动游戏，再开启游戏模式')
+    row.game_mode = false
+    return
+  }
+
+  togglingGameId.value = row.id
+  try {
+    const updateData = {
+      game_mode: val,
+      game_album_id: val ? row.game_album_id : null,
+      video_id: val ? null : (row.video_id || undefined)
+    }
+    await api.put(`/nfc-tags/${row.id}`, updateData)
+    ElMessage.success(val ? '已开启游戏模式' : '已切换为视频模式')
+    fetchData()
+  } catch (error) {
+    row.game_mode = !val
+    console.error('切换模式失败:', error)
+  } finally {
+    togglingGameId.value = null
+  }
+}
+
 onMounted(() => {
   fetchData()
   fetchProducts()
   fetchVideos()
   fetchSkus()
+  fetchGames()
+  window.addEventListener('resize', checkMobile)
 })
 </script>
 
@@ -491,6 +569,7 @@ onMounted(() => {
 /* Primary Button */
 .btn-primary {
   background: #0071e3;
+  color: #fff;
   border: none;
   border-radius: 8px;
   font-size: 13px;
@@ -518,6 +597,29 @@ onMounted(() => {
   border: none;
   padding: 12px 16px;
   white-space: nowrap;
+}
+
+:deep(.el-table__header-wrapper th .cell) {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+/* Action Buttons — 2×2 grid */
+.action-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  justify-items: center;
+}
+/* Left col hug right, right col hug left → column gap=6px */
+.action-btns > :nth-child(odd) { justify-self: end; }
+.action-btns > :nth-child(even) { justify-self: start; }
+
+/* Override table cell white-space for action column */
+.action-btns-wrapper :deep(.cell) {
+  white-space: normal !important;
 }
 
 :deep(.el-table__body-wrapper td) {
@@ -598,57 +700,20 @@ onMounted(() => {
   font-size: 13px;
 }
 
-/* Action Buttons */
-.action-btns {
+/* Game Toggle Cell */
+.game-toggle-cell {
   display: flex;
-  gap: 6px;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
 }
-
-.btn-approve {
-  background: #34c759;
-  border: none;
-  color: white;
-  border-radius: 6px;
-  font-size: 12px;
-  padding: 6px 12px;
-}
-
-.btn-approve:hover {
-  background: #30d158;
-}
-
-.btn-reject {
-  background: #ff3b30;
-  border: none;
-  color: white;
-  border-radius: 6px;
-  font-size: 12px;
-  padding: 6px 12px;
-}
-
-.btn-reject:hover {
-  background: #ff453a;
-}
-
-.btn-text {
-  background: transparent;
-  border: none;
-  color: #0071e3;
-  font-size: 13px;
-  padding: 6px 10px;
-  border-radius: 6px;
-}
-
-.btn-text:hover {
-  background: rgba(0, 113, 227, 0.1);
-}
-
-.btn-danger {
-  color: #ff3b30;
-}
-
-.btn-danger:hover {
-  background: rgba(255, 59, 48, 0.1);
+.game-name-inline {
+  font-size: 11px;
+  color: #86868b;
+  white-space: nowrap;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Pagination */
@@ -667,7 +732,7 @@ onMounted(() => {
 }
 
 /* Dialog */
-:deep(.icloud-dialog .el-dialog) {
+:deep(.icloud-dialog) {
   border-radius: 14px;
   overflow: hidden;
 }
@@ -743,5 +808,117 @@ onMounted(() => {
 .delete-label {
   color: #ff3b30;
   font-weight: bold;
+}
+
+/* Responsive: Mobile */
+@media (max-width: 768px) {
+  .page-card {
+    padding: 12px;
+    border-radius: 0;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .card-header .btn-primary {
+    width: 100%;
+  }
+
+  :deep(.el-table) {
+    overflow-x: auto;
+    display: block;
+  }
+
+  .action-btns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+  }
+  .action-btns > :nth-child(odd) { justify-self: end; }
+  .action-btns > :nth-child(even) { justify-self: start; }
+
+  :deep(.el-table__body-wrapper) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .action-btns .el-button {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+
+  .pagination-wrapper {
+    justify-content: center;
+  }
+
+  :deep(.el-pagination) {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  :deep(.el-pagination .el-pagination__sizes) {
+    margin-right: 0;
+  }
+
+  :deep(.el-dialog) {
+    margin: 8px;
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 16px;
+  }
+
+  :deep(.icloud-dialog .el-dialog__header) {
+    padding: 14px 16px;
+  }
+
+  :deep(.icloud-dialog .el-dialog__body) {
+    padding: 16px;
+  }
+
+  :deep(.icloud-dialog .el-dialog__footer) {
+    padding: 12px 16px;
+  }
+
+  :deep(.el-form-item) {
+    flex-wrap: wrap;
+  }
+
+  :deep(.el-form-item__label) {
+    width: 100% !important;
+    text-align: left;
+    padding-bottom: 4px;
+  }
+
+  :deep(.el-form-item__content) {
+    margin-left: 0 !important;
+    width: 100%;
+  }
+
+  .dialog-footer {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .footer-left,
+  .footer-right {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  .footer-right {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .footer-right .el-button {
+    flex: 1;
+    min-width: 0;
+  }
 }
 </style>

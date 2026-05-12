@@ -7,7 +7,10 @@
 
 import os
 import uuid
+import logging
 from contextlib import suppress
+
+logger = logging.getLogger(__name__)
 
 import aiofiles
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile, status
@@ -42,7 +45,7 @@ def list_videos(
     if status:
         query = query.filter(Video.status == status)
     total = query.count()
-    items = query.offset(skip).limit(limit).all()
+    items = query.order_by(Video.id.asc()).offset(skip).limit(limit).all()
     return PaginatedResponse(
         items=items,
         total=total,
@@ -191,8 +194,10 @@ def delete_video(
 
     # Delete file if exists
     if video.file_path and os.path.exists(video.file_path):
-        with suppress(OSError):
+        try:
             os.remove(video.file_path)
+        except OSError as e:
+            logger.warning(f"删除视频文件失败 (id={video_id}, path={video.file_path}): {e}")
 
     db.delete(video)
     db.commit()

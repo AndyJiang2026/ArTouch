@@ -133,20 +133,20 @@ def login(
     """User login, returns JWT token."""
     client_ip = request.client.host if request.client else "unknown"
 
-    # Check rate limit
-    _check_rate_limit(client_ip)
+    # TEMPORARILY DISABLED: Rate limit check
+    # _check_rate_limit(client_ip)
 
     user = db.query(User).filter(User.username == form_data.username).first()
 
     if not user:
-        _record_attempt(client_ip)
+        # TEMPORARILY DISABLED: _record_attempt(client_ip)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="用户名或密码错误",
         )
 
     if not verify_password(form_data.password, user.password_hash):
-        _record_attempt(client_ip)
+        # TEMPORARILY DISABLED: _record_attempt(client_ip)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="用户名或密码错误",
@@ -163,10 +163,9 @@ def login(
     user.is_first_login = False
     db.commit()
 
-    access_token_expires = timedelta(hours=settings.ACCESS_TOKEN_EXPIRE_HOURS)
+    # No expiration - permanent token
     access_token = create_access_token(
         data={"sub": str(user.id), "role": user.role},
-        expires_delta=access_token_expires,
     )
     refresh_token = create_refresh_token(data={"sub": str(user.id), "role": user.role})
 
@@ -193,7 +192,7 @@ def refresh_token(
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """Refresh access token using refresh token."""
-    token_data = decode_token(refresh_token)
+    token_data = decode_token(refresh_token, verify_exp=False)
     if not token_data:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -221,10 +220,9 @@ def refresh_token(
             detail="用户已被禁用",
         )
 
-    access_token_expires = timedelta(hours=settings.ACCESS_TOKEN_EXPIRE_HOURS)
+    # No expiration - permanent token
     access_token = create_access_token(
         data={"sub": str(user.id), "role": user.role},
-        expires_delta=access_token_expires,
     )
     new_refresh_token = create_refresh_token(data={"sub": str(user.id), "role": user.role})
 

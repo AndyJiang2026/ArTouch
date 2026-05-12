@@ -1,0 +1,200 @@
+/* ===================================================
+   Global Responsive CSS System for Artouch
+   Mobile-first responsive design with Element Plus
+   Breakpoint: 768px
+   =================================================== */
+
+/* --- 1. Responsive Breakpoints (max-width: 768px) --- */
+
+@media screen and (max-width: 768px) {
+  /* --- 2. Global Table Horizontal Scroll --- */
+  .el-table {
+    overflow-x: auto !important;
+    display: block;
+    width: 100%;
+  }
+
+  .el-table__body-wrapper {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .el-table__header-wrapper,
+  .el-table__body-wrapper,
+  .el-table__footer-wrapper {
+    width: 100%;
+  }
+
+  /* Ensure table cells don't shrink too aggressively */
+  .el-table .cell {
+    white-space: nowrap;
+  }
+
+  /* --- 3. Touch-friendly buttons & inputs (min-height: 44px) --- */
+  .el-button {
+    min-height: 44px;
+  }
+
+  .el-button--small,
+  .el-button--mini {
+    min-height: 36px;
+  }
+
+  .el-input__inner,
+  .el-textarea__inner,
+  .el-select .el-input__inner,
+  .el-autocomplete .el-input__inner,
+  .el-date-editor .el-input__inner {
+    min-height: 44px;
+  }
+
+  .el-input__wrapper {
+    min-height: 44px;
+  }
+
+  .el-select-dropdown__item {
+    min-height: 44px;
+    line-height: 44px;
+  }
+
+  /* --- 4. Dialog full-screen on mobile --- */
+  .el-dialog {
+    width: 92% !important;
+    max-width: 92% !important;
+    margin: 10px auto !important;
+  }
+
+  .el-dialog.is-fullscreen {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border-radius: 0;
+  }
+
+  .el-dialog__body {
+    padding: 16px;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  /* --- 5. Card padding reduction on mobile --- */
+  .el-card {
+    margin: 8px 0;
+  }
+
+  .el-card__body {
+    padding: 12px;
+  }
+
+  /* --- 6. Form layout adjustments for mobile --- */
+  .el-form-item {
+    margin-bottom: 14px;
+  }
+
+  .el-form-item__label {
+    padding-bottom: 4px;
+  }
+
+  .el-form--inline .el-form-item {
+    width: 100%;
+    margin-right: 0;
+  }
+
+  /* --- 7. Table cell padding reduction --- */
+  .el-table__cell {
+    padding: 6px 4px !important;
+  }
+
+  /* --- 8. Pagination compact --- */
+  .el-pagination {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  /* --- 9. Page header and breadcrumb spacing --- */
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  /* --- 10. Tags and badges touch-friendly --- */
+  .el-tag {
+    min-height: 28px;
+    line-height: 28px;
+  }
+}
+
+/* --- 11. Smooth transitions for responsive changes --- */
+.el-dialog,
+.el-card,
+.el-button,
+.el-input__inner,
+.el-table {
+  transition: all 0.3s ease;
+}
+
+/* --- 12. El-table minimum width adaptation (desktop) --- */
+.el-table--mini {
+  font-size: 12px;
+}
+
+/* Ensure tables don't get too small on medium screens */
+@media screen and (max-width: 1024px) and (min-width: 769px) {
+  .el-table__body-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* --- 13. Image responsive --- */
+.responsive-image {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* --- 14. Global transition for route animations --- */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-fade-enter-active {
+  transition: all 0.3s ease-out;
+}
+
+.slide-fade-leave-active {
+  transition: all 0.2s ease-in;
+}
+
+.slide-fade-enter-from {
+  transform: translateX(10px);
+  opacity: 0;
+}
+
+.slide-fade-leave-to {
+  transform: translateX(-10px);
+  opacity: 0;
+}
+
+/* --- 15. Scrollbar styling (Webkit) --- */
+.el-table__body-wrapper::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+
+.el-table__body-wrapper::-webkit-scrollbar-thumb {
+  background: #c0c4cc;
+  border-radius: 3px;
+}
+
+.el-table__body-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}

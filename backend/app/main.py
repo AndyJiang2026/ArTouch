@@ -7,7 +7,7 @@
 
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
@@ -19,14 +19,15 @@ from fastapi.staticfiles import StaticFiles
 from app.api.auth import router as auth_router
 from app.api.cultural_products import router as cultural_products_router
 from app.api.dashboard import router as dashboard_router
+from app.api.gallery import router as gallery_router
 from app.api.nfc import router as nfc_router
+from app.api.nfc_secure import router as nfc_secure_router
 from app.api.nfc_tags import router as nfc_tags_router
 from app.api.sku_instances import router as sku_instances_router
 from app.api.skus import router as skus_router
-from app.api.nfc_secure import router as nfc_secure_router
+from app.api.static_protected import router as static_protected_router
 from app.api.users import router as users_router
 from app.api.videos import router as videos_router
-from app.api.static_protected import router as static_protected_router
 from app.config import settings
 from app.core.security import get_password_hash
 from app.database import Base, engine
@@ -89,10 +90,10 @@ async def lifespan(_app: FastAPI):
     """Application lifespan handler."""
     # Startup
     init_db()
-    print(f"ArtTouch NFC System started on {datetime.utcnow()}")
+    print(f"ArtTouch NFC System started on {datetime.now(timezone.utc)}")
     yield
     # Shutdown
-    print(f"ArtTouch NFC System stopped on {datetime.utcnow()}")
+    print(f"ArtTouch NFC System stopped on {datetime.now(timezone.utc)}")
 
 
 app = FastAPI(
@@ -108,10 +109,15 @@ def _get_cors_origins() -> list:
     env_origins = os.getenv("ALLOWED_ORIGINS", "")
     if env_origins:
         return [o.strip() for o in env_origins.split(",") if o.strip()]
-    # Default origins if not configured
+    # Default CORS origins - used when ALLOWED_ORIGINS env var not set
+    # IMPORTANT: Keep in sync with systemd service environment variables
     return [
         "https://www.artouch.tech",
-        "https://artouch.tech",
+        "https://nfc.artouch.tech",
+        "https://admin.artouch.tech",
+        "https://api.artouch.tech",
+        "https://mall.artouch.tech",
+        "https://m.artouch.tech",
     ]
 
 
@@ -169,6 +175,7 @@ app.include_router(videos_router)
 app.include_router(skus_router)
 app.include_router(sku_instances_router)
 app.include_router(nfc_tags_router)
+app.include_router(gallery_router)
 app.include_router(dashboard_router)
 app.include_router(nfc_router)
 app.include_router(nfc_secure_router)
@@ -197,4 +204,4 @@ def root():
 @app.get("/health")
 def health_check():
     """Health check endpoint."""
-    return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
+    return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}

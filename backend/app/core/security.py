@@ -27,11 +27,13 @@ def get_password_hash(password: str) -> str:
 
 
 def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
-    """Create a JWT access token."""
+    """Create a JWT access token. If expires_delta is None, token never expires."""
     to_encode = data.copy()
     now = datetime.utcnow()
-    expire = now + expires_delta if expires_delta else now + timedelta(hours=settings.ACCESS_TOKEN_EXPIRE_HOURS)
-    to_encode.update({"exp": expire, "iat": now, "type": "access"})
+    expire = now + expires_delta if expires_delta else None
+    to_encode.update({"iat": now, "type": "access"})
+    if expire:
+        to_encode["exp"] = expire
     return jwt.encode(
         to_encode,
         settings.SECRET_KEY,
@@ -40,11 +42,13 @@ def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = 
 
 
 def create_refresh_token(data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
-    """Create a JWT refresh token."""
+    """Create a JWT refresh token. If expires_delta is None, token never expires."""
     to_encode = data.copy()
     now = datetime.utcnow()
-    expire = now + expires_delta if expires_delta else now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    to_encode.update({"exp": expire, "iat": now, "type": "refresh"})
+    expire = now + expires_delta if expires_delta else None
+    to_encode.update({"iat": now, "type": "refresh"})
+    if expire:
+        to_encode["exp"] = expire
     return jwt.encode(
         to_encode,
         settings.SECRET_KEY,
@@ -52,13 +56,14 @@ def create_refresh_token(data: dict[str, Any], expires_delta: timedelta | None =
     )
 
 
-def decode_token(token: str) -> dict[str, Any] | None:
-    """Decode and verify a JWT token."""
+def decode_token(token: str, verify_exp: bool = True) -> dict[str, Any] | None:
+    """Decode and verify a JWT token. Set verify_exp=False for tokens without expiration."""
     try:
         return jwt.decode(
             token,
             settings.SECRET_KEY,
             algorithms=[settings.ALGORITHM],
+            options={"verify_exp": verify_exp} if not verify_exp else {},
         )
     except JWTError:
         return None

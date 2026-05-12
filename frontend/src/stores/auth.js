@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import api from '@/api'
+import api, { refreshApi } from '@/api'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('token') || '')
@@ -16,9 +16,8 @@ export const useAuthStore = defineStore('auth', () => {
     formData.append('username', username)
     formData.append('password', password)
     
-    const response = await api.post('/auth/login', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    })
+    // 注意：不要手动设置 Content-Type，axios 会自动为 FormData 添加正确的 boundary
+    const response = await api.post('/auth/login', formData)
     
     token.value = response.data.access_token
     refreshToken.value = response.data.refresh_token
@@ -38,9 +37,8 @@ export const useAuthStore = defineStore('auth', () => {
       const formData = new FormData()
       formData.append('refresh_token', refreshToken.value)
       
-      const response = await api.post('/auth/refresh-token', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
+      // 使用独立的refreshApi实例发送刷新请求（无拦截器），避免401→刷新→401递归
+      const response = await refreshApi.post('/auth/refresh-token', formData)
       
       token.value = response.data.access_token
       refreshToken.value = response.data.refresh_token

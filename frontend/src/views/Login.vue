@@ -52,7 +52,8 @@
     <el-dialog
       v-model="showPasswordDialog"
       title="首次登录 - 请修改密码"
-      width="450px"
+      width="90%"
+      max-width="450px"
       :close-on-click-modal="false"
       :show-close="false"
       class="icloud-dialog"
@@ -97,6 +98,11 @@ const passwordFormRef = ref(null)
 const loading = ref(false)
 const changingPassword = ref(false)
 const showPasswordDialog = ref(false)
+
+// Check and clear invalid token on mount
+if (authStore.token && !authStore.refreshToken) {
+  authStore.logout()
+}
 
 const loginForm = reactive({
   username: '',
@@ -156,7 +162,17 @@ async function handleLogin() {
           router.push({ name: 'Dashboard' })
         }
       } catch (error) {
-        // Error is handled by interceptor
+        // 修复: 错误密码无反馈Bug - 显示错误提示
+        if (error.response?.status === 401) {
+          ElMessage.error('用户名或密码错误')
+        } else if (error.response?.status === 422) {
+          ElMessage.error('请输入用户名和密码')
+        } else if (error.response?.data?.detail) {
+          ElMessage.error(error.response.data.detail)
+        } else if (!error.response) {
+          ElMessage.error('网络错误，请检查网络连接')
+        }
+        // 其他错误由axios拦截器处理
       } finally {
         loading.value = false
       }
@@ -197,11 +213,19 @@ async function handleChangePassword() {
 
 /* iCloud Style Login Card */
 .login-card {
-  width: 380px;
+  max-width: 380px;
+  width: 90%;
   padding: 48px 40px;
   background: #ffffff;
   border-radius: 16px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: 36px 24px;
+    border-radius: 12px;
+  }
 }
 
 .login-header {
@@ -304,5 +328,18 @@ async function handleChangePassword() {
 :deep(.icloud-dialog .el-dialog__footer) {
   padding: 16px 24px;
   background: #f5f5f7;
+}
+
+/* Mobile: override label-width to 0 for password form in dialog */
+@media (max-width: 480px) {
+  :deep(.icloud-dialog .el-form-item__label) {
+    width: 0 !important;
+    overflow: hidden;
+    white-space: nowrap;
+    padding: 0;
+  }
+  :deep(.icloud-dialog .el-form-item__content) {
+    margin-left: 0 !important;
+  }
 }
 </style>

@@ -5,10 +5,10 @@
 # ENGINEER: System
 # RISK-LEVEL: P1
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, String, text
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -23,16 +23,19 @@ class NFCTag(Base):
     id = Column(Integer, primary_key=True, index=True)
     url_code = Column(String(50), unique=True, nullable=False, index=True)  # 001_002_003
     cultural_product_id = Column(Integer, ForeignKey("cultural_products.id"), nullable=False)
-    video_id = Column(Integer, ForeignKey("videos.id"), nullable=False)
+    video_id = Column(Integer, ForeignKey("videos.id"), nullable=True)
     sku_id = Column(Integer, ForeignKey("skus.id"), nullable=True)  # 关联到具体SKU单品（非产品库描述关键词）
     sku_instance_id = Column(Integer, ForeignKey("sku_instances.id"), nullable=True, unique=True)  # 关联到具体SKU实例
     status = Column(String(20), default="active")  # active, inactive
     approval_status = Column(String(20), default="pending")  # pending, approved, rejected
+    game_mode = Column(Boolean, default=False, nullable=False, server_default=text('false'))  # 是否启用互动游戏模式（替代视频播放）
+    game_album = Column(String(50), nullable=True)  # 画卷ID，如 "benma"
+    game_album_id = Column(String(50), nullable=True, comment="关联的画卷album_id")
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     approved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     approved_at = Column(Date, nullable=True)
     expires_at = Column(Date, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     cultural_product = relationship("CulturalProduct", back_populates="nfc_tags")
@@ -53,7 +56,7 @@ class TagClick(Base):
     device_info = Column(String(500), nullable=True)
     ip_address = Column(String(50), nullable=True)
     referer = Column(String(500), nullable=True)
-    clicked_at = Column(DateTime, default=datetime.utcnow)
+    clicked_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     tag = relationship("NFCTag", back_populates="clicks")

@@ -28,6 +28,9 @@ class NFCTagCreate(BaseModel):
     cultural_product_id: int
     video_id: int
     sku_id: int | None = None
+    game_mode: bool = False
+    game_album: str | None = None
+    game_album_id: str | None = None
     expires_at: date | None = None
     auto_create_sku_instance: bool = Field(False, description="是否自动创建SKU实例并绑定")
 
@@ -42,6 +45,9 @@ class NFCTagCreate(BaseModel):
 class NFCTagUpdate(BaseModel):
     video_id: int | None = None
     sku_id: int | None = None
+    game_mode: bool | None = None
+    game_album: str | None = None
+    game_album_id: str | None = None
     status: str | None = None
     expires_at: date | None = None
 
@@ -57,11 +63,14 @@ class NFCTagResponse(BaseModel):
     id: int
     url_code: str
     cultural_product_id: int
-    video_id: int
+    video_id: int | None
     sku_id: int | None
     sku_instance_id: int | None
     status: NFCTagStatus
     approval_status: NFCTagApprovalStatus
+    game_mode: bool = False
+    game_album: str | None = None
+    game_album_id: str | None = None
     created_by: int
     approved_by: int | None
     approved_at: date | None
@@ -81,7 +90,12 @@ class NFCTagApproveResponse(BaseModel):
 
 
 class NFCPlayResponse(BaseModel):
-    video_url: str
-    title: str
-    cultural_product_name: str
+    video_url: str = ""
+    title: str = ""
+    cultural_product_name: str = ""
     duration: float | None = None
+    game_mode: bool = False
+    game_url: str = ""
+
+    class Config:
+        from_attributes = True

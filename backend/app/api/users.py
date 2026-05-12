@@ -44,7 +44,7 @@ def list_users(
         query = query.filter(User.role == role)
 
     total = query.count()
-    items = query.offset(skip).limit(limit).all()
+    items = query.order_by(User.id.asc()).offset(skip).limit(limit).all()
 
     return PaginatedResponse(
         items=items,

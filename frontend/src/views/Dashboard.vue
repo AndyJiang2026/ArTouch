@@ -382,4 +382,47 @@ onMounted(() => {
   font-size: 13px;
   font-weight: 500;
 }
+
+/* ==============================
+   Mobile Responsive (≤768px)
+   ============================== */
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .stat-card {
+    padding: 12px 14px;
+    min-height: 64px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+  }
+
+  .stat-icon {
+    width: 36px;
+    height: 36px;
+    margin-right: 12px;
+  }
+
+  .stat-icon .el-icon {
+    font-size: 16px;
+  }
+
+  .charts-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .chart-card {
+    padding: 14px;
+  }
+
+  .chart-container {
+    height: 180px;
+  }
+}
 </style>

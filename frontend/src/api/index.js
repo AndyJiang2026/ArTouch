@@ -8,8 +8,9 @@
  *   import { dashboardApi } from '@/api'
  */
 
-import axios from './axios'
+import axios, { refreshApi } from './axios'
 export default axios
+export { refreshApi }
 export { authApi } from './auth'
 export { videosApi } from './videos'
 export { culturalProductsApi } from './culturalProducts'

@@ -12,9 +12,9 @@ import router from '@/router'
 const api = axios.create({
   baseURL: '/api',
   timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  // Note: Do NOT set default Content-Type here. 
+  // Axios auto-detects: JSON objects → application/json, FormData → multipart/form-data
+  // Explicit Content-Type breaks FormData (axios treats it as JSON and JSON.stringifies it)
 })
 
 // Separate axios instance for refresh token (avoids interceptor loop)
@@ -72,6 +72,7 @@ api.interceptors.response.use(
         isRefreshing = true
 
         const authStore = useAuthStore()
+        // 使用独立的refreshApi实例发送刷新请求，避免递归进入当前拦截器
         const result = await authStore.refreshAccessToken()
 
         if (result) {
@@ -84,8 +85,11 @@ api.interceptors.response.use(
           // Refresh failed, logout and redirect
           isRefreshing = false
           authStore.logout()
-          router.push({ name: 'Login' })
-          ElMessage.error('登录已过期，请重新登录')
+          // Only redirect and show error if not already on login page
+          if (router.currentRoute.value.name !== 'Login') {
+            router.push({ name: 'Login' })
+            ElMessage.error('登录已过期，请重新登录')
+          }
           return Promise.reject(error)
         }
       }
@@ -94,8 +98,11 @@ api.interceptors.response.use(
         // Refresh already tried and failed
         const authStore = useAuthStore()
         authStore.logout()
-        router.push({ name: 'Login' })
-        ElMessage.error('登录已过期，请重新登录')
+        // Only redirect and show error if not already on login page
+        if (router.currentRoute.value.name !== 'Login') {
+          router.push({ name: 'Login' })
+          ElMessage.error('登录已过期，请重新登录')
+        }
         return Promise.reject(error)
       } else if (status === 403) {
         ElMessage.error(data.detail || '没有权限执行此操作')
@@ -119,3 +126,4 @@ api.interceptors.response.use(
 )
 
 export default api
+export { refreshApi }

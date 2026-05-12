@@ -36,7 +36,7 @@ def list_skus(
     if cultural_product_id:
         query = query.filter(SKU.cultural_product_id == cultural_product_id)
     total = query.count()
-    items = query.order_by(SKU.id.desc()).offset(skip).limit(limit).all()
+    items = query.order_by(SKU.id.asc()).offset(skip).limit(limit).all()
     return PaginatedResponse(
         items=items,
         total=total,

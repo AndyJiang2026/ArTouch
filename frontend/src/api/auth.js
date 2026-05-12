@@ -16,9 +16,8 @@ export const authApi = {
     const formData = new FormData()
     formData.append('username', username)
     formData.append('password', password)
-    return api.post('/auth/login', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    // 注意：不要手动设置 Content-Type，axios 会自动为 FormData 添加正确的 boundary
+    return api.post('/auth/login', formData)
   },
 
   /**

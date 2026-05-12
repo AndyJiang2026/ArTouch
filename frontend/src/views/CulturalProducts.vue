@@ -4,34 +4,34 @@
       <template #header>
         <div class="card-header">
           <span>文创品列表</span>
-          <el-button type="primary" @click="showDialog('create')">
+          <el-button type="primary" class="header-add-btn" @click="showDialog('create')">
             <el-icon><Plus /></el-icon>
-            新增文创品
+            <span class="btn-text">新增文创品</span>
           </el-button>
         </div>
       </template>
 
-      <el-table :data="tableData" style="width: 100%" class="icloud-table" table-layout="fixed">
-        <el-table-column prop="code" label="编号" width="100" align="center">
+      <el-table :data="tableData" style="width: 100%" class="icloud-table">
+        <el-table-column prop="code" label="编号" min-width="80" align="center">
           <template #default="{ row }">
             <span class="mono">{{ row.code }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="name" label="中文名" min-width="150" show-overflow-tooltip />
         <el-table-column prop="description" label="描述" min-width="120" show-overflow-tooltip />
-        <el-table-column prop="status" label="状态" width="100" align="center">
+        <el-table-column prop="status" label="状态" min-width="80" align="center">
           <template #default="{ row }">
             <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">
               {{ row.status === 'active' ? '启用' : '禁用' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="创建时间" width="160" align="center">
+        <el-table-column prop="created_at" label="创建时间" min-width="160" align="center">
           <template #default="{ row }">
             {{ formatDate(row.created_at) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="160" align="center" fixed="right">
+        <el-table-column label="操作" min-width="120" align="center">
           <template #default="{ row }">
             <div class="action-btns">
               <el-button type="primary" size="small" @click="showDialog('edit', row)">
@@ -62,10 +62,11 @@
     <el-dialog
       v-model="dialogVisible"
       :title="dialogTitle"
-      width="500px"
+      width="90%"
+      max-width="500px"
       @close="resetForm"
     >
-      <el-form ref="formRef" :model="form" :rules="formRules" label-width="80px">
+      <el-form ref="formRef" :model="form" :rules="formRules" label-width="80px" :label-position="isMobile ? 'top' : 'right'">
         <el-form-item label="编号" prop="code">
           <el-input v-model="form.code" placeholder="3位数字，如001" maxlength="3" :disabled="dialogType === 'edit'" />
         </el-form-item>
@@ -91,7 +92,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '@/api'
 
@@ -100,6 +101,12 @@ const dialogVisible = ref(false)
 const dialogType = ref('create')
 const submitting = ref(false)
 const formRef = ref(null)
+
+const isMobile = ref(window.innerWidth < 768)
+
+function handleResize() {
+  isMobile.value = window.innerWidth < 768
+}
 
 const pagination = reactive({
   page: 1,
@@ -222,7 +229,12 @@ async function handleDelete(row) {
 }
 
 onMounted(() => {
+  window.addEventListener('resize', handleResize)
   fetchData()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 
@@ -244,7 +256,7 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
-.card-header span {
+.card-header > span {
   font-size: 15px;
   font-weight: 600;
   color: #1d1d1f;
@@ -252,6 +264,7 @@ onMounted(() => {
 
 .card-header :deep(.el-button--primary) {
   background: #0071e3;
+  color: #fff;
   border: none;
   border-radius: 8px;
   font-size: 13px;
@@ -348,5 +361,81 @@ onMounted(() => {
 .mono {
   font-family: 'SF Mono', 'Menlo', monospace;
   letter-spacing: 0.05em;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .header-add-btn .btn-text {
+    display: inline;
+  }
+
+  .header-add-btn {
+    width: 100%;
+  }
+
+  .pagination-wrapper {
+    justify-content: center;
+  }
+
+  :deep(.el-dialog) {
+    width: 92% !important;
+    min-width: unset;
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 16px;
+  }
+
+  :deep(.el-dialog__header) {
+    padding: 14px 16px;
+  }
+
+  :deep(.el-dialog__footer) {
+    padding: 12px 16px;
+  }
+
+  :deep(.el-card__body) {
+    padding: 12px;
+  }
+
+  :deep(.el-form-item) {
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+
+  :deep(.el-form-item__label) {
+    width: 100% !important;
+    padding-bottom: 4px;
+  }
+
+  :deep(.el-form-item__content) {
+    margin-left: 0 !important;
+    width: 100%;
+  }
+
+  .action-btns {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .action-btns .el-button {
+    width: 100%;
+  }
+
+  :deep(.el-table__header-wrapper th) {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+
+  :deep(.el-table__body-wrapper td) {
+    padding: 10px;
+    font-size: 13px;
+  }
 }
 </style>

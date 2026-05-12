@@ -5,9 +5,9 @@
         <div class="card-header">
           <span>视频列表</span>
           <div class="header-actions">
-            <el-button type="primary" @click="showUploadDialog">
+            <el-button type="primary" @click="showUploadDialog" class="responsive-btn">
               <el-icon><Upload /></el-icon>
-              上传视频
+              <span class="btn-text">上传视频</span>
             </el-button>
           </div>
         </div>
@@ -33,7 +33,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="220" align="center" fixed="right">
+        <el-table-column label="操作" width="230" align="center">
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button type="primary" size="small" @click="handlePreview(row)">
@@ -64,7 +64,7 @@
     </el-card>
 
     <!-- 上传视频对话框 -->
-    <el-dialog v-model="uploadDialogVisible" title="上传视频" width="500px">
+    <el-dialog v-model="uploadDialogVisible" title="上传视频" width="90%" max-width="500px">
       <el-form ref="uploadFormRef" :model="uploadForm" :rules="uploadRules" label-width="80px">
         <el-form-item label="编号" prop="code">
           <el-input v-model="uploadForm.code" placeholder="3位数字，如001" maxlength="3" />
@@ -97,8 +97,11 @@
     </el-dialog>
 
     <!-- 编辑对话框 -->
-    <el-dialog v-model="editDialogVisible" title="编辑视频" width="500px" @close="resetEditForm">
+    <el-dialog v-model="editDialogVisible" title="编辑视频" width="90%" max-width="500px" @close="resetEditForm">
       <el-form ref="editFormRef" :model="editForm" :rules="editRules" label-width="80px">
+        <el-form-item label="编号" prop="code">
+          <el-input v-model="editForm.code" placeholder="3位数字，如001" maxlength="3" />
+        </el-form-item>
         <el-form-item label="名称" prop="name">
           <el-input v-model="editForm.name" placeholder="请输入视频名称" maxlength="200" />
         </el-form-item>
@@ -117,7 +120,7 @@
     </el-dialog>
 
     <!-- 视频预览对话框 -->
-    <el-dialog v-model="previewDialogVisible" title="视频预览" width="800px">
+    <el-dialog v-model="previewDialogVisible" title="视频预览" width="95%" max-width="800px">
       <div class="video-preview">
         <video
           v-if="previewUrl"
@@ -168,6 +171,7 @@ const uploadForm = reactive({
 
 const editForm = reactive({
   id: null,
+  code: '',
   name: '',
   status: 'active'
 })
@@ -186,6 +190,10 @@ const uploadRules = {
 }
 
 const editRules = {
+  code: [
+    { required: true, message: '请输入编号', trigger: 'blur' },
+    { pattern: /^\d{3}$/, message: '编号必须是3位数字', trigger: 'blur' }
+  ],
   name: [
     { required: true, message: '请输入名称', trigger: 'blur' }
   ],
@@ -301,6 +309,7 @@ async function handleUpload() {
 
 function showEditDialog(row) {
   editForm.id = row.id
+  editForm.code = row.code
   editForm.name = row.name
   editForm.status = row.status
   editDialogVisible.value = true
@@ -318,6 +327,7 @@ async function handleUpdate() {
       submitting.value = true
       try {
         await api.put(`/videos/${editForm.id}`, {
+          code: editForm.code,
           name: editForm.name,
           status: editForm.status
         })
@@ -389,7 +399,7 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
-.card-header span {
+.card-header > span {
   font-size: 15px;
   font-weight: 600;
   color: #1d1d1f;
@@ -397,6 +407,7 @@ onMounted(() => {
 
 .card-header :deep(.el-button--primary) {
   background: #0071e3;
+  color: #fff;
   border: none;
   border-radius: 8px;
   font-size: 13px;
@@ -488,5 +499,87 @@ onMounted(() => {
 
 .preview-empty p {
   margin-top: 10px;
+}
+
+/* ===== Responsive: Mobile adaptations ===== */
+@media (max-width: 768px) {
+  .card-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .header-actions {
+    justify-content: flex-end;
+  }
+
+  .responsive-btn .btn-text {
+    display: inline;
+  }
+
+  .action-buttons {
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+
+  .action-buttons .el-button {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+
+  :deep(.el-dialog) {
+    margin: 0 12px !important;
+    width: auto !important;
+    max-width: calc(100vw - 24px) !important;
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 16px;
+  }
+
+  :deep(.el-dialog__header) {
+    padding: 14px 16px;
+  }
+
+  :deep(.el-dialog__footer) {
+    padding: 12px 16px;
+  }
+
+  .video-preview {
+    min-height: 200px;
+  }
+}
+
+@media (max-width: 480px) {
+  :deep(.el-table__body-wrapper td),
+  :deep(.el-table__header-wrapper th) {
+    padding: 8px 6px !important;
+    font-size: 12px !important;
+  }
+
+  .responsive-btn .btn-text {
+    display: none;
+  }
+
+  .responsive-btn {
+    padding: 8px 10px !important;
+  }
+
+  .pagination-wrapper {
+    justify-content: center;
+    overflow-x: auto;
+  }
+
+  :deep(.el-pagination) {
+    flex-wrap: nowrap;
+    white-space: nowrap;
+  }
+
+  :deep(.el-pagination button),
+  :deep(.el-pagination .el-pager li) {
+    min-width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
 }
 </style>

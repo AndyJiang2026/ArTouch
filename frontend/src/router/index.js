@@ -39,6 +39,11 @@ const routes = [
         component: () => import('@/views/NFCTags.vue')
       },
       {
+        path: 'interactive-games',
+        name: 'InteractiveGames',
+        component: () => import('@/views/InteractiveGames.vue')
+      },
+      {
         path: 'settings',
         name: 'Settings',
         component: () => import('@/views/Settings.vue')

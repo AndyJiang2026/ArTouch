@@ -23,15 +23,21 @@ from app.schemas.pagination import PaginatedResponse
 router = APIRouter(prefix="/api/nfc-tags", tags=["NFC标签"])
 
 
-def generate_url_code(
-    cultural_product_code: str,
-    video_code: str,
-    sku_code: str | None = None,
-) -> str:
-    """Generate URL code in format 001_002_003."""
-    if sku_code:
-        return f"{cultural_product_code}_{video_code}_{sku_code}"
-    return f"{cultural_product_code}_{video_code}"
+# AI-ASSISTED: Yes
+# AI-TOOL: Hermes Agent
+# PROMPT: Generate sequential URL code for NFC tags (001, 002, 003...) instead of composite product_video_sku
+# DATE: 2026-05-07
+# ENGINEER: System
+# RISK-LEVEL: P1
+
+def generate_url_code(db) -> str:
+    """Generate sequential 3-digit URL code (001, 002, 003...)."""
+    from sqlalchemy import func
+    max_code = db.query(func.max(NFCTag.url_code)).scalar()
+    if max_code and max_code.isdigit():
+        next_num = int(max_code) + 1
+        return str(next_num).zfill(3)
+    return "001"
 
 
 def get_nfc_tag_or_404(db: Session, tag_id: int) -> "NFCTag":
@@ -65,7 +71,7 @@ def list_nfc_tags(
         query = query.filter(NFCTag.cultural_product_id == cultural_product_id)
 
     total = query.count()
-    items = query.offset(skip).limit(limit).all()
+    items = query.order_by(NFCTag.id.asc()).offset(skip).limit(limit).all()
 
     return PaginatedResponse(
         items=items,
@@ -109,8 +115,8 @@ def create_nfc_tag(
             )
         sku_code = sku.code
 
-    # Generate URL code
-    url_code = generate_url_code(product.code, video.code, sku_code)
+    # Generate sequential URL code
+    url_code = generate_url_code(db)
 
     # Check if URL code already exists
     existing = db.query(NFCTag).filter(NFCTag.url_code == url_code).first()
@@ -125,6 +131,7 @@ def create_nfc_tag(
         cultural_product_id=tag_data.cultural_product_id,
         video_id=tag_data.video_id,
         sku_id=tag_data.sku_id,
+        game_album_id=tag_data.game_album_id,
         status="active",
         approval_status="pending",
         created_by=current_user.id,

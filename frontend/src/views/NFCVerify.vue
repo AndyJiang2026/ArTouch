@@ -45,7 +45,7 @@
       <div v-if="scanResult" class="result-section">
         <el-divider content-position="left">读取结果</el-divider>
 
-        <el-descriptions :column="2" border size="small">
+        <el-descriptions :column="isMobile ? 1 : 2" border size="small">
           <el-descriptions-item label="标签UID">
             <code class="uid-code">{{ scanResult.uid }}</code>
           </el-descriptions-item>
@@ -133,33 +133,41 @@
       <!-- Recent Verifications -->
       <el-divider content-position="left">最近验证记录</el-divider>
 
-      <el-table :data="recentLogs" size="small" max-height="200">
-        <el-table-column prop="uid" label="UID" width="140">
-          <template #default="{ row }">
-            <code>{{ row.uid }}</code>
-          </template>
-        </el-table-column>
-        <el-table-column prop="result" label="结果" width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.is_success ? 'success' : 'danger'" size="small">
-              {{ row.is_success ? '成功' : '失败' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="verified_at" label="时间" width="160">
-          <template #default="{ row }">
-            {{ formatTime(row.verified_at) }}
-          </template>
-        </el-table-column>
-      </el-table>
+      <div class="table-wrapper">
+        <el-table :data="recentLogs" size="small" max-height="200">
+          <el-table-column prop="uid" label="UID" width="140">
+            <template #default="{ row }">
+              <code>{{ row.uid }}</code>
+            </template>
+          </el-table-column>
+          <el-table-column prop="result" label="结果" width="100">
+            <template #default="{ row }">
+              <el-tag :type="row.is_success ? 'success' : 'danger'" size="small">
+                {{ row.is_success ? '成功' : '失败' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="verified_at" label="时间" width="160">
+            <template #default="{ row }">
+              {{ formatTime(row.verified_at) }}
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
     </el-card>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus'
 import api from '@/api'
+
+// Responsive
+const isMobile = ref(window.innerWidth < 768)
+function onResize() {
+  isMobile.value = window.innerWidth < 768
+}
 
 // State
 const isSupported = ref(false)
@@ -346,7 +354,13 @@ onMounted(() => {
     isSupported.value = true
   }
 
+  window.addEventListener('resize', onResize)
+
   loadRecentLogs()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', onResize)
 })
 
 onUnmounted(() => {
@@ -362,6 +376,28 @@ onUnmounted(() => {
   padding: 24px;
   max-width: 800px;
   margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .verify-container {
+    padding: 16px;
+  }
+
+  .scan-section {
+    padding: 16px 0;
+  }
+
+  .verify-status {
+    padding: 16px;
+  }
+
+  .card-header {
+    font-size: 16px;
+  }
+
+  .scan-hint {
+    font-size: 13px;
+  }
 }
 
 .verify-card {
@@ -412,5 +448,10 @@ onUnmounted(() => {
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 13px;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 </style>
